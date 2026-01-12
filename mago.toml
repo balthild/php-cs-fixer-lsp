@@ -1,5 +1,5 @@
 # https://mago.carthage.software/guide/configuration
-php-version = "8.4"
+php-version = "8.2"
 
 [source]
 paths = ["src/", "bin/"]

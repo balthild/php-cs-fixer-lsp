@@ -21,9 +21,9 @@ use Symfony\Component\Process\PhpExecutableFinder;
 
 class WorkerPool implements ListenerProviderInterface
 {
-    protected const int STATUS_UNINITIALIZED = 0;
-    protected const int STATUS_INITIALIZED = 1;
-    protected const int STATUS_TRANSITIONING = 2;
+    protected const STATUS_UNINITIALIZED = 0;
+    protected const STATUS_INITIALIZED = 1;
+    protected const STATUS_TRANSITIONING = 2;
 
     public readonly int $workers;
 
@@ -83,7 +83,7 @@ class WorkerPool implements ListenerProviderInterface
 
             $this->status = self::STATUS_TRANSITIONING;
 
-            $php = new PhpExecutableFinder()->find(false);
+            $php = (new PhpExecutableFinder())->find(false);
             $main = $this->getMainScript();
             $command = "{$php} {$main} worker";
 

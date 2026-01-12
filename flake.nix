@@ -15,21 +15,17 @@
       imports = [ inputs.devenv.flakeModule ];
       systems = nixpkgs.lib.systems.flakeExposed;
 
-      perSystem = { pkgs, config, ... }: {
-        packages = {
-          box = pkgs.php84Packages.box.override {
-            php82 = pkgs.php84;
-          };
-        };
+      perSystem = { pkgs, ... }: {
+        packages = {};
 
         devenv.shells.default = {
           name = "php-cs-fixer-lsp";
 
-          packages = [ config.packages.box ];
+          packages = [ pkgs.php82Packages.box ];
 
           languages.php = {
             enable = true;
-            package = pkgs.php84.buildEnv {
+            package = pkgs.php82.buildEnv {
               extensions = { all, enabled }: with all; enabled ++ [
                 xdebug
               ];

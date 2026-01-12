@@ -15,7 +15,7 @@ phive install balthild/php-cs-fixer-lsp
 Compile to a PHAR file:
 
 ```
-box compile
+make build
 ```
 
 The output will be located at `build` directory.

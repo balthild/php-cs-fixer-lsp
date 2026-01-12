@@ -2,3 +2,4 @@
 /.devenv/
 /vendor/
 /build/
+.php-cs-fixer.cache
