@@ -1,0 +1,16 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+if (!in_array(PHP_SAPI, ['cli', 'phpdbg', 'embed'], true)) {
+    echo "This program may only be invoked from a command line, got '" . PHP_SAPI . "'\n";
+    exit(1);
+}
+
+require $_composer_autoload_path ?? __DIR__ . '/../vendor/autoload.php';
+
+use Balthild\PhpCsFixerLsp\Application;
+
+$app = new Application();
+$app->run();
