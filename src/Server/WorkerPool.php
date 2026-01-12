@@ -17,6 +17,7 @@ use Balthild\PhpCsFixerLsp\Model\ServerOptions;
 use Phpactor\LanguageServer\Event\Initialized;
 use Phpactor\LanguageServer\Event\WillShutdown;
 use Psr\EventDispatcher\ListenerProviderInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\PhpExecutableFinder;
 
 class WorkerPool implements ListenerProviderInterface
@@ -24,6 +25,8 @@ class WorkerPool implements ListenerProviderInterface
     protected const STATUS_UNINITIALIZED = 0;
     protected const STATUS_INITIALIZED = 1;
     protected const STATUS_TRANSITIONING = 2;
+
+    protected readonly LoggerInterface $logger;
 
     public readonly int $workers;
 
@@ -37,8 +40,9 @@ class WorkerPool implements ListenerProviderInterface
     /** @var Channel[] */
     protected array $channels = [];
 
-    public function __construct(ServerOptions $options)
+    public function __construct(LoggerInterface $logger, ServerOptions $options)
     {
+        $this->logger = $logger;
         $this->workers = $options->workers;
         $this->status = self::STATUS_UNINITIALIZED;
         $this->semaphore = new LocalSemaphore($this->workers);
@@ -71,6 +75,7 @@ class WorkerPool implements ListenerProviderInterface
         match (true) {
             $event instanceof Initialized => yield $this->initialize(...),
             $event instanceof WillShutdown => yield $this->shutdown(...),
+            default => null,
         };
     }
 
@@ -78,14 +83,17 @@ class WorkerPool implements ListenerProviderInterface
     {
         \Amp\asyncCall(function () {
             if ($this->status !== self::STATUS_UNINITIALIZED) {
+                $this->logger->warning('worker pool is already initialized or initializing');
                 return;
             }
 
+            $this->logger->info("initializing worker pool with {$this->workers} workers");
             $this->status = self::STATUS_TRANSITIONING;
 
             $php = (new PhpExecutableFinder())->find(false);
             $main = $this->getMainScript();
             $command = "{$php} {$main} worker";
+            $this->logger->debug("worker command: {$command}");
 
             $processes = array_map(
                 fn () => new Process($command),
@@ -108,6 +116,7 @@ class WorkerPool implements ListenerProviderInterface
             $this->processes = $processes;
             $this->channels = $channels;
 
+            $this->logger->info('worker pool initialized');
             $this->status = self::STATUS_INITIALIZED;
         });
     }
@@ -116,9 +125,11 @@ class WorkerPool implements ListenerProviderInterface
     {
         \Amp\asyncCall(function () {
             if ($this->status !== self::STATUS_INITIALIZED) {
+                $this->logger->warning('worker pool is not initialized');
                 return;
             }
 
+            $this->logger->info('shutting down worker pool');
             $this->status = self::STATUS_TRANSITIONING;
 
             yield Promise\all(array_map(
@@ -134,6 +145,7 @@ class WorkerPool implements ListenerProviderInterface
                 range(0, $this->workers - 1),
             ));
 
+            $this->logger->info('worker pool shut down');
             $this->status = self::STATUS_UNINITIALIZED;
         });
     }

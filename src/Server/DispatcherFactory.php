@@ -37,7 +37,8 @@ class DispatcherFactory implements DispatcherFactoryInterface
 
     public function create(MessageTransmitter $transmitter, InitializeParams $params): Dispatcher
     {
-        $workers = new WorkerPool($this->options);
+        $workers = new WorkerPool($this->logger, $this->options);
+        $formatter = new Formatter($this->logger, $workers);
         $workspace = new Workspace();
 
         $dispatcher = new AggregateEventDispatcher(
@@ -47,7 +48,8 @@ class DispatcherFactory implements DispatcherFactoryInterface
 
         $handlers = new Handlers(
             new TextDocumentHandler($dispatcher),
-            new FormattingHandler($workspace, new Formatter($workers)),
+            new FormattingHandler($workspace, $formatter),
+            new TraceHandler($this->logger),
         );
 
         $runner = new HandlerMethodRunner(

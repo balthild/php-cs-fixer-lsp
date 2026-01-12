@@ -13,16 +13,20 @@ use Balthild\PhpCsFixerLsp\Server\WorkerPool;
 use Phpactor\LanguageServer\Core\Formatting\Formatter as FormatterInterface;
 use Phpactor\LanguageServerProtocol\TextDocumentItem;
 use Phpactor\LanguageServerProtocol\TextEdit;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Finder\Finder;
 
 class Formatter implements FormatterInterface
 {
+    protected LoggerInterface $logger;
+
     protected WorkerPool $workers;
 
     protected Finder $finder;
 
-    public function __construct(WorkerPool $workers)
+    public function __construct(LoggerInterface $logger, WorkerPool $workers)
     {
+        $this->logger = $logger;
         $this->workers = $workers;
         $this->finder = Helpers::getPhpCsFixerFinder();
     }
@@ -32,10 +36,15 @@ class Formatter implements FormatterInterface
      */
     public function format(TextDocumentItem $textDocument): Promise
     {
+        $this->logger->info("formatting {$textDocument->uri}");
+
         // Non-file URIs are always formatted
         if (str_starts_with($textDocument->uri, 'file://')) {
             $path = urldecode(parse_url($textDocument->uri, PHP_URL_PATH));
             if (!Helpers::found($this->finder, $path)) {
+                $this->logger->debug(
+                    "skipping {$textDocument->uri} because it's excluded by PHP-CS-Fixer configuration",
+                );
                 return new Success(null);
             }
         }
@@ -46,8 +55,13 @@ class Formatter implements FormatterInterface
         $temp = tempnam(sys_get_temp_dir(), 'php-cs-fixer-lsp-');
 
         return \Amp\call(function () use ($textDocument, $temp) {
+            $this->logger->debug("writing code to temporary file {$temp}");
             yield File\write($temp, $textDocument->text);
+
+            $this->logger->debug("calling worker with path {$temp}");
             $response = yield $this->workers->call(new FormatRequest(path: $temp));
+
+            $this->logger->debug("deleting temporary file {$temp}");
             yield File\deleteFile($temp);
         });
     }
