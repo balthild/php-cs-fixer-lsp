@@ -15,7 +15,6 @@ use Phpactor\LanguageServer\Core\Formatting\Formatter as FormatterInterface;
 use Phpactor\LanguageServerProtocol\TextDocumentItem;
 use Phpactor\LanguageServerProtocol\TextEdit;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Finder\Finder;
 
 class Formatter implements FormatterInterface
 {

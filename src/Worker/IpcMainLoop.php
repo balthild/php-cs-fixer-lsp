@@ -10,6 +10,7 @@ use Amp\Loop;
 use Amp\Parallel\Sync\ChannelledSocket;
 use Amp\Promise;
 use Balthild\PhpCsFixerLsp\Helpers;
+use Balthild\PhpCsFixerLsp\Model\IPC\ErrorResponse;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatResponse;
 use PhpCsFixer\Error\ErrorsManager;
@@ -24,6 +25,8 @@ class IpcMainLoop
 
     public function __construct(LoggerInterface $logger)
     {
+        // logger does not work unless we inherit the stderr from server
+        // but amphp/process hardcoded it to a pipe
         $this->logger = $logger;
         $this->runner = $this->createRunner();
     }
@@ -45,10 +48,12 @@ class IpcMainLoop
                     };
                     yield $channel->send($response);
                 } catch (\Throwable $exception) {
-                    $this->logger->error($exception->getMessage(), [
-                        'request' => $request,
-                        'exception' => $exception,
-                    ]);
+                    // $this->logger->error($exception->getMessage(), [
+                    //     'request' => $request,
+                    //     'exception' => $exception,
+                    // ]);
+
+                    yield $channel->send(new ErrorResponse($exception));
                 }
             }
 

@@ -11,6 +11,7 @@ use Amp\Promise;
 use Amp\Sync\LocalSemaphore;
 use Amp\Sync\Lock;
 use Amp\Sync\Semaphore;
+use Balthild\PhpCsFixerLsp\Model\IPC\ErrorResponse;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
@@ -64,9 +65,16 @@ class WorkerPool implements ListenerProviderInterface
             $lock = yield $this->semaphore->acquire();
 
             $channel = $this->channels[$lock->getId()];
-
             yield $channel->send($request);
-            return yield $channel->receive();
+            $response = yield $channel->receive();
+
+            $lock->release();
+
+            if ($response instanceof ErrorResponse) {
+                throw $response->exception;
+            }
+
+            return $response;
         });
     }
 
