@@ -7,6 +7,7 @@ namespace Balthild\PhpCsFixerLsp\Server;
 use Amp\File;
 use Amp\Promise;
 use Amp\Success;
+use Balthild\PhpCsFixerLsp\FinderCache;
 use Balthild\PhpCsFixerLsp\Helpers;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
 use Balthild\PhpCsFixerLsp\Server\WorkerPool;
@@ -22,13 +23,13 @@ class Formatter implements FormatterInterface
 
     protected WorkerPool $workers;
 
-    protected Finder $finder;
+    protected FinderCache $finder;
 
     public function __construct(LoggerInterface $logger, WorkerPool $workers)
     {
         $this->logger = $logger;
         $this->workers = $workers;
-        $this->finder = Helpers::getPhpCsFixerFinder();
+        $this->finder = new FinderCache(Helpers::getPhpCsFixerFinder());
     }
 
     /**
@@ -36,18 +37,18 @@ class Formatter implements FormatterInterface
      */
     public function format(TextDocumentItem $textDocument): Promise
     {
-        $this->logger->info("formatting {$textDocument->uri}");
-
         // Non-file URIs are always formatted
         if (str_starts_with($textDocument->uri, 'file://')) {
             $path = urldecode(parse_url($textDocument->uri, PHP_URL_PATH));
-            if (!Helpers::found($this->finder, $path)) {
-                $this->logger->debug(
+            if (!$this->finder->contains($path)) {
+                $this->logger->info(
                     "skipping {$textDocument->uri} because it's excluded by PHP-CS-Fixer configuration",
                 );
                 return new Success(null);
             }
         }
+
+        $this->logger->info("formatting {$textDocument->uri}");
 
         // Due to the limitations of PHP-CS-Fixer's implementation, we have to
         // write the code to a file to get it formatted. Fortunately, the temp
@@ -63,6 +64,8 @@ class Formatter implements FormatterInterface
 
             $this->logger->debug("deleting temporary file {$temp}");
             yield File\deleteFile($temp);
+
+            return $response->edits;
         });
     }
 }

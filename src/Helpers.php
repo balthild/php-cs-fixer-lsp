@@ -12,38 +12,6 @@ use Symfony\Component\Finder\Finder;
 
 final class Helpers
 {
-    /**
-     * Symfony Finder does not provide a way to check this. The following impl
-     * is generally fast enough, but could still be O(n) in extreme cases.
-     *
-     * @param Finder $finder
-     * @param string $path
-     * @return bool
-     */
-    public static function found(Finder $finder, string $path): bool
-    {
-        $path = realpath($path);
-
-        // First check if the file is in the search dirs
-        foreach (self::getPrivate($finder, 'dirs') as $dir) {
-            $dir = realpath($dir);
-            if (str_starts_with($path, $dir)) {
-                // Now check if the file is filtered by a traversal starting from its direct parent dir
-
-                /** @var \Iterator<\SplFileInfo> */
-                $files = self::callPrivate($finder, 'searchInDirectory', [dirname($path)]);
-
-                foreach ($files as $file) {
-                    if ($file->getRealPath() === $path) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
     public static function getPhpCsFixerResolver(array $options = []): ConfigurationResolver
     {
         $options = [
@@ -85,19 +53,35 @@ final class Helpers
 
     public static function getPrivate(object $object, string $property): mixed
     {
-        $closure = function () use ($property) {
-            return $this->{$property};
-        };
+        $reflClass = new \ReflectionClass($object);
 
-        return $closure->call($object);
+        while (!$reflClass->hasProperty($property)) {
+            $reflClass = $reflClass->getParentClass();
+            if ($reflClass === false) {
+                throw new \RuntimeException("Property {$property} not found");
+            }
+        }
+
+        $reflProperty = $reflClass->getProperty($property);
+        $reflProperty->setAccessible(true);
+
+        return $reflProperty->getValue($object);
     }
 
     public static function callPrivate(object $object, string $method, array $args): mixed
     {
-        $closure = function () use ($method, $args) {
-            return $this->{$method}(...$args);
-        };
+        $reflClass = new \ReflectionClass($object);
 
-        return $closure->call($object);
+        while (!$reflClass->hasMethod($method)) {
+            $reflClass = $reflClass->getParentClass();
+            if ($reflClass === false) {
+                throw new \RuntimeException("Method {$method} not found");
+            }
+        }
+
+        $reflMethod = $reflClass->getMethod($method);
+        $reflMethod->setAccessible(true);
+
+        return $reflMethod->invokeArgs($object, $args);
     }
 }

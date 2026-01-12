@@ -67,7 +67,7 @@ class DispatcherFactory implements DispatcherFactoryInterface
                 'name' => Application::name(),
                 'version' => Application::version(),
             ]),
-            new ShutdownMiddleware($dispatcher),
+            new ShutdownMiddleware($dispatcher, 0),
             new CancellationMiddleware($runner),
             new HandlerMiddleware($runner),
         );
