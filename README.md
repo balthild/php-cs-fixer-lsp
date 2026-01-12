@@ -4,7 +4,9 @@ This project provides a Language Server Protocol (LSP) implementation for PHP CS
 
 ## Installation
 
-Download manually from [releases](https://github.com/balthild/php-cs-fixer-lsp/releases), or install with Phive:
+If you're using the [vscode extension](https://marketplace.visualstudio.com/items?itemName=balthild.php-cs-fixer-lsp), it will download the language server automatically.
+
+If you need the language server for other editors, download manually from [releases](https://github.com/balthild/php-cs-fixer-lsp/releases), or install with Phive:
 
 ```bash
 phive install balthild/php-cs-fixer-lsp
