@@ -8,6 +8,8 @@ if (!in_array(PHP_SAPI, ['cli', 'phpdbg', 'embed'], true)) {
     exit(1);
 }
 
+ini_set('display_errors', 'stderr');
+
 require $_composer_autoload_path ?? __DIR__ . '/../vendor/autoload.php';
 
 use Balthild\PhpCsFixerLsp\Application;
