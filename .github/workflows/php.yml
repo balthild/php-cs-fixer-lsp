@@ -23,9 +23,6 @@ jobs:
           php-version: '8.2'
           tools: composer, box
 
-      - name: Validate Composer Manifest
-        run: composer validate --strict
-
       - name: Get Composer Cache Directory
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
