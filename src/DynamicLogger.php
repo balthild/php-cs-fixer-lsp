@@ -43,7 +43,7 @@ class DynamicLogger extends ConsoleLogger
         parent::__construct($output, $this->verbosityLevelMap, $this->formatLevelMap);
     }
 
-    public function setLevel(int $level): void
+    public function setLevel(string $level): void
     {
         $this->output->setVerbosity($this->verbosityLevelMap[$level] ?? OutputInterface::VERBOSITY_NORMAL);
     }

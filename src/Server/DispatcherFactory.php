@@ -48,6 +48,7 @@ class DispatcherFactory implements DispatcherFactoryInterface
 
         $handlers = new Handlers(
             new TextDocumentHandler($dispatcher),
+            new ConfigurationHandler($this->logger),
             new FormattingHandler($workspace, $formatter),
             new TraceHandler($this->logger),
         );
