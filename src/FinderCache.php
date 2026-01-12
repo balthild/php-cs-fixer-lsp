@@ -15,13 +15,17 @@ class FinderCache
 
     public function __construct(Finder $finder)
     {
-        foreach ($finder->getIterator() as $file) {
-            $this->cache[$file->getRealPath()] = true;
+        try {
+            foreach ($finder->getIterator() as $file) {
+                $this->cache[$file->getRealPath()] = true;
+            }
+        } catch (\LogicException) {
+            // defaults to match everything
         }
     }
 
     public function contains(string $path): bool
     {
-        return array_key_exists($path, $this->cache);
+        return $this->cache && array_key_exists($path, $this->cache);
     }
 }
