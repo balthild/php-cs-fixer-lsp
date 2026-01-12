@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "86da7d9f8c6f1ba05a0528fd61502b55",
+    "content-hash": "10c3369d97473d51c8a48be04028d811",
     "packages": [
         {
             "name": "amphp/amp",
@@ -1690,16 +1690,16 @@
         },
         {
             "name": "phpactor/language-server",
-            "version": "7.0.1",
+            "version": "dev-bugfix/formatting",
             "source": {
                 "type": "git",
-                "url": "https://github.com/phpactor/language-server.git",
-                "reference": "e4934195cc1857ec3347a488f3357b0f0df2d2bf"
+                "url": "https://github.com/balthild/language-server.git",
+                "reference": "a46f05382d59979cc1d0998ffe220f80506431fa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpactor/language-server/zipball/e4934195cc1857ec3347a488f3357b0f0df2d2bf",
-                "reference": "e4934195cc1857ec3347a488f3357b0f0df2d2bf",
+                "url": "https://api.github.com/repos/balthild/language-server/zipball/a46f05382d59979cc1d0998ffe220f80506431fa",
+                "reference": "a46f05382d59979cc1d0998ffe220f80506431fa",
                 "shasum": ""
             },
             "require": {
@@ -1707,7 +1707,7 @@
                 "dantleech/argument-resolver": "^1.1",
                 "dantleech/invoke": "^2.0",
                 "php": "^8.1",
-                "phpactor/language-server-protocol": "^3.17",
+                "phpactor/language-server-protocol": "^3.17.5",
                 "psr/event-dispatcher": "^1.0",
                 "psr/log": "^1.0",
                 "ramsey/uuid": "^4.0"
@@ -1736,7 +1736,19 @@
                     "Phpactor\\LanguageServer\\": "lib/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpactor\\LanguageServer\\Tests\\": "tests/",
+                    "AcmeLs\\": "example/server/acme-ls/"
+                }
+            },
+            "scripts": {
+                "integrate": [
+                    "./vendor/bin/phpunit",
+                    "./vendor/bin/phpstan --memory-limit=-1 analyze",
+                    "./vendor/bin/php-cs-fixer fix"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -1748,10 +1760,9 @@
             ],
             "description": "Generic Language Server Platform",
             "support": {
-                "issues": "https://github.com/phpactor/language-server/issues",
-                "source": "https://github.com/phpactor/language-server/tree/7.0.1"
+                "source": "https://github.com/balthild/language-server/tree/bugfix/formatting"
             },
-            "time": "2025-01-26T23:40:29+00:00"
+            "time": "2026-01-12T14:05:05+00:00"
         },
         {
             "name": "phpactor/language-server-protocol",
@@ -5834,7 +5845,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "phpactor/language-server": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

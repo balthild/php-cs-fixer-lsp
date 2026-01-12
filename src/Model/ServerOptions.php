@@ -10,11 +10,18 @@ use Symfony\Component\Console\Attribute\Option;
 
 final class ServerOptions
 {
+    #[Option('Start the server on stdio')]
+    public bool $stdio = true;
+
     #[Option('The number of worker processes. Specify 0 to auto-detect based on CPU cores')]
     public int $workers = 0;
 
     public function resolve(): void
     {
+        if (!$this->stdio) {
+            throw new \InvalidArgumentException('Only stdio mode is supported.');
+        }
+
         if ($this->workers < 0) {
             throw new \InvalidArgumentException('The number of workers must be non-negative.');
         }
