@@ -20,12 +20,13 @@ class FinderCache
                 $this->cache[$file->getRealPath()] = true;
             }
         } catch (\LogicException) {
+            // @mago-expect lint:no-empty-catch-clause
             // defaults to match everything
         }
     }
 
     public function contains(string $path): bool
     {
-        return $this->cache && array_key_exists($path, $this->cache);
+        return !$this->cache || array_key_exists($path, $this->cache);
     }
 }
