@@ -4,7 +4,7 @@
 declare(strict_types=1);
 
 if (!in_array(PHP_SAPI, ['cli', 'phpdbg', 'embed'], true)) {
-    echo "This program may only be invoked from a command line, got '" . PHP_SAPI . "'\n";
+    fwrite(STDERR, sprintf('This program must be run from a command line, got %s.%s', PHP_SAPI, PHP_EOL));
     exit(1);
 }
 

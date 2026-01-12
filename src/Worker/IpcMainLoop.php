@@ -13,6 +13,8 @@ use Balthild\PhpCsFixerLsp\Helpers;
 use Balthild\PhpCsFixerLsp\Model\IPC\ErrorResponse;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatResponse;
+use PhpCsFixer\Console\ConfigurationResolver;
+use PhpCsFixer\Console\Output\Progress\ProgressOutputType;
 use PhpCsFixer\Error\ErrorsManager;
 use PhpCsFixer\Runner\Runner;
 use Psr\Log\LoggerInterface;
@@ -94,6 +96,8 @@ class IpcMainLoop
     {
         $resolver = Helpers::getPhpCsFixerResolver([
             'sequential' => true,
+            'using-cache' => ConfigurationResolver::BOOL_NO,
+            'show-progress' => ProgressOutputType::NONE,
         ]);
 
         return new Runner(
