@@ -12,6 +12,11 @@ use Symfony\Component\Finder\Finder;
 
 final class Helpers
 {
+    public static function uriToPath(string $uri): string
+    {
+        return urldecode(parse_url($uri, PHP_URL_PATH));
+    }
+
     public static function getPhpCsFixerResolver(array $options = []): ConfigurationResolver
     {
         $options = [

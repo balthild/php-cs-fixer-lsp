@@ -7,8 +7,6 @@ namespace Balthild\PhpCsFixerLsp\Server;
 use Amp\File;
 use Amp\Promise;
 use Amp\Success;
-use Balthild\PhpCsFixerLsp\FinderCache;
-use Balthild\PhpCsFixerLsp\Helpers;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
 use Balthild\PhpCsFixerLsp\Server\WorkerPool;
 use Phpactor\LanguageServer\Core\Formatting\Formatter as FormatterInterface;
@@ -18,18 +16,11 @@ use Psr\Log\LoggerInterface;
 
 class Formatter implements FormatterInterface
 {
-    protected LoggerInterface $logger;
-
-    protected WorkerPool $workers;
-
-    protected FinderCache $finder;
-
-    public function __construct(LoggerInterface $logger, WorkerPool $workers)
-    {
-        $this->logger = $logger;
-        $this->workers = $workers;
-        $this->finder = new FinderCache(Helpers::getPhpCsFixerFinder());
-    }
+    public function __construct(
+        protected LoggerInterface $logger,
+        protected WorkerPool $workers,
+        protected FinderCache $finder,
+    ) {}
 
     /**
      * @return Promise<TextEdit[]|null>
@@ -38,8 +29,7 @@ class Formatter implements FormatterInterface
     {
         // Non-file URIs are always formatted
         if (str_starts_with($textDocument->uri, 'file://')) {
-            $path = urldecode(parse_url($textDocument->uri, PHP_URL_PATH));
-            if (!$this->finder->contains($path)) {
+            if (!$this->finder->contains($textDocument->uri)) {
                 $this->logger->info(
                     "skipping {$textDocument->uri} because it's excluded by PHP-CS-Fixer configuration",
                 );

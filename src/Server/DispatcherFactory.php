@@ -19,6 +19,7 @@ use Phpactor\LanguageServer\Core\Server\Transmitter\MessageTransmitter;
 use Phpactor\LanguageServer\Core\Workspace\Workspace;
 use Phpactor\LanguageServer\Handler\TextDocument\FormattingHandler;
 use Phpactor\LanguageServer\Handler\TextDocument\TextDocumentHandler;
+use Phpactor\LanguageServer\Handler\Workspace\DidChangeWatchedFilesHandler;
 use Phpactor\LanguageServer\Listener\WorkspaceListener;
 use Phpactor\LanguageServer\Middleware\CancellationMiddleware;
 use Phpactor\LanguageServer\Middleware\ErrorHandlingMiddleware;
@@ -37,17 +38,20 @@ class DispatcherFactory implements DispatcherFactoryInterface
 
     public function create(MessageTransmitter $transmitter, InitializeParams $params): Dispatcher
     {
+        $finder = new FinderCache();
         $workers = new WorkerPool($this->logger, $this->options);
-        $formatter = new Formatter($this->logger, $workers);
+        $formatter = new Formatter($this->logger, $workers, $finder);
         $workspace = new Workspace();
 
         $dispatcher = new AggregateEventDispatcher(
+            $finder,
             $workers,
             new WorkspaceListener($workspace),
         );
 
         $handlers = new Handlers(
             new TextDocumentHandler($dispatcher),
+            new DidChangeWatchedFilesHandler($dispatcher),
             new ConfigurationHandler($this->logger),
             new FormattingHandler($workspace, $formatter),
             new TraceHandler($this->logger),
