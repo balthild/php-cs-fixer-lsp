@@ -22,8 +22,17 @@ class ServerCommand extends Command
 
         $logger = new DynamicLogger($output);
         $factory = new DispatcherFactory($options, $logger);
-        $server = LanguageServerBuilder::create($factory)->build();
-        $server->run();
+        $server = LanguageServerBuilder::create($factory);
+
+        if ($options->socket !== null) {
+            $address = "127.0.0.1:{$options->socket}";
+            $logger->info("starting server on {$address}");
+            $server->tcpServer($address);
+        } else {
+            $logger->info('starting server on stdio');
+        }
+
+        $server->build()->run();
 
         return Command::SUCCESS;
     }
