@@ -6,6 +6,7 @@ namespace Balthild\PhpCsFixerLsp\Server;
 
 use Balthild\PhpCsFixerLsp\Helpers;
 use Phpactor\LanguageServer\Event\FilesChanged;
+use Phpactor\LanguageServerProtocol\FileChangeType;
 use Psr\EventDispatcher\ListenerProviderInterface;
 
 /**
@@ -46,8 +47,18 @@ class FinderCache implements ListenerProviderInterface
     public function getListenersForEvent(object $event): iterable
     {
         match (true) {
-            $event instanceof FilesChanged => yield $this->refresh(...),
+            $event instanceof FilesChanged => yield $this->changed(...),
             default => null,
         };
+    }
+
+    protected function changed(FilesChanged $event): void
+    {
+        foreach ($event->events() as $item) {
+            if ($item->type === FileChangeType::CREATED) {
+                $this->refresh();
+                return;
+            }
+        }
     }
 }
