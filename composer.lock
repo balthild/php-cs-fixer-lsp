@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "10c3369d97473d51c8a48be04028d811",
+    "content-hash": "5a2e3bb91c2b156c16c7f17c608572ba",
     "packages": [
         {
             "name": "amphp/amp",
@@ -1690,16 +1690,16 @@
         },
         {
             "name": "phpactor/language-server",
-            "version": "dev-bugfix/formatting",
+            "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "https://github.com/balthild/language-server.git",
-                "reference": "a46f05382d59979cc1d0998ffe220f80506431fa"
+                "url": "https://github.com/phpactor/language-server.git",
+                "reference": "8074481cd4b0be145805deb0a94e7611f2881cc8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/balthild/language-server/zipball/a46f05382d59979cc1d0998ffe220f80506431fa",
-                "reference": "a46f05382d59979cc1d0998ffe220f80506431fa",
+                "url": "https://api.github.com/repos/phpactor/language-server/zipball/8074481cd4b0be145805deb0a94e7611f2881cc8",
+                "reference": "8074481cd4b0be145805deb0a94e7611f2881cc8",
                 "shasum": ""
             },
             "require": {
@@ -1725,6 +1725,7 @@
                 "phpunit/phpunit": "^9.0",
                 "symfony/var-dumper": "^5.1"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "branch-alias": {
@@ -1736,19 +1737,7 @@
                     "Phpactor\\LanguageServer\\": "lib/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Phpactor\\LanguageServer\\Tests\\": "tests/",
-                    "AcmeLs\\": "example/server/acme-ls/"
-                }
-            },
-            "scripts": {
-                "integrate": [
-                    "./vendor/bin/phpunit",
-                    "./vendor/bin/phpstan --memory-limit=-1 analyze",
-                    "./vendor/bin/php-cs-fixer fix"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -1760,9 +1749,10 @@
             ],
             "description": "Generic Language Server Platform",
             "support": {
-                "source": "https://github.com/balthild/language-server/tree/bugfix/formatting"
+                "issues": "https://github.com/phpactor/language-server/issues",
+                "source": "https://github.com/phpactor/language-server/tree/master"
             },
-            "time": "2026-01-12T14:05:05+00:00"
+            "time": "2026-01-11T12:21:33+00:00"
         },
         {
             "name": "phpactor/language-server-protocol",

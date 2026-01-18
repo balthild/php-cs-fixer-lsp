@@ -9,7 +9,7 @@
             "email": "ibalthild@gmail.com"
         }
     ],
-    "bin": ["bin/php-cs-fixer-lsp"],
+    "bin": "bin/php-cs-fixer-lsp",
     "require": {
         "php": "^8.2",
         "composer-runtime-api": "^2.2",
@@ -19,19 +19,13 @@
         "amphp/sync": "^1.4",
         "fidry/cpu-core-counter": "^1.3",
         "friendsofphp/php-cs-fixer": "3.92.5",
-        "phpactor/language-server": "dev-bugfix/formatting",
+        "phpactor/language-server": "dev-master",
         "sebastian/diff": "^6.0",
         "symfony/console": "^7.4"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5"
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/balthild/language-server"
-        }
-    ],
     "autoload": {
         "psr-4": {
             "Balthild\\PhpCsFixerLsp\\": "src/"

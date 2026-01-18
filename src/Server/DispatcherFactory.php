@@ -6,6 +6,7 @@ namespace Balthild\PhpCsFixerLsp\Server;
 
 use Balthild\PhpCsFixerLsp\Application;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
+use Phpactor\LanguageServer\Adapter\DTL\DTLArgumentResolver;
 use Phpactor\LanguageServer\Adapter\Psr\AggregateEventDispatcher;
 use Phpactor\LanguageServer\Core\Dispatcher\ArgumentResolver\ChainArgumentResolver;
 use Phpactor\LanguageServer\Core\Dispatcher\ArgumentResolver\LanguageSeverProtocolParamsResolver;
@@ -61,6 +62,7 @@ class DispatcherFactory implements DispatcherFactoryInterface
             $handlers,
             new ChainArgumentResolver(
                 new LanguageSeverProtocolParamsResolver(),
+                new DTLArgumentResolver(),
                 new PassThroughArgumentResolver(),
             ),
         );
