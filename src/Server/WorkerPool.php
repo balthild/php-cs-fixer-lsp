@@ -103,17 +103,17 @@ class WorkerPool implements ListenerProviderInterface
             $command = "{$php} {$main} worker";
             $this->logger->debug("worker command: {$command}");
 
-            $processes = array_map(
+            $processes = \array_map(
                 fn () => new Process($command),
-                range(0, $this->workers - 1),
+                \range(0, $this->workers - 1),
             );
 
-            yield Promise\all(array_map(
+            yield Promise\all(\array_map(
                 fn (Process $process) => $process->start(),
                 $processes,
             ));
 
-            $channels = array_map(
+            $channels = \array_map(
                 fn (Process $process) => new ChannelledStream(
                     $process->getStdout(),
                     $process->getStdin(),
@@ -140,7 +140,7 @@ class WorkerPool implements ListenerProviderInterface
             $this->logger->info('shutting down worker pool');
             $this->status = self::STATUS_TRANSITIONING;
 
-            yield Promise\all(array_map(
+            yield Promise\all(\array_map(
                 fn () => \Amp\call(function () {
                     /** @var Lock */
                     $lock = yield $this->semaphore->acquire();
@@ -150,7 +150,7 @@ class WorkerPool implements ListenerProviderInterface
 
                     yield $lock->release();
                 }),
-                range(0, $this->workers - 1),
+                \range(0, $this->workers - 1),
             ));
 
             $this->logger->info('worker pool shut down');
@@ -165,8 +165,8 @@ class WorkerPool implements ListenerProviderInterface
             return $phar;
         }
 
-        $path = realpath(__DIR__ . '/../../bin/php-cs-fixer-lsp');
-        if (is_file($path)) {
+        $path = \realpath(__DIR__ . '/../../bin/php-cs-fixer-lsp');
+        if (\is_file($path)) {
             return $path;
         }
 

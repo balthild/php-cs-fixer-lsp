@@ -37,14 +37,14 @@ class IpcMainLoop
     {
         Loop::run(function () {
             $channel = new ChannelledSocket(
-                fopen('php://stdin', 'r'),
-                fopen('php://stdout', 'w'),
+                \fopen('php://stdin', 'r'),
+                \fopen('php://stdout', 'w'),
             );
 
             // @mago-expect lint:no-assign-in-condition
             while ($request = yield $channel->receive()) {
                 try {
-                    $response = yield match (get_class($request)) {
+                    $response = yield match (\get_class($request)) {
                         FormatRequest::class => $this->format($request),
                         default => $this->unknown($request),
                     };
@@ -84,9 +84,9 @@ class IpcMainLoop
     public function unknown(mixed $request): Promise
     {
         $type = match (true) {
-            is_array($request) => 'array',
-            is_object($request) => get_class($request),
-            default => gettype($request),
+            \is_array($request) => 'array',
+            \is_object($request) => \get_class($request),
+            default => \gettype($request),
         };
 
         return new Failure(new \RuntimeException("Unknown request: {$type}"));

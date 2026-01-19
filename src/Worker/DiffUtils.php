@@ -57,7 +57,7 @@ class DiffUtils
                         $edits[] = new TextEdit(
                             new Range(
                                 new Position($startLine, 0),
-                                new Position($startLine + count($removed), 0),
+                                new Position($startLine + \count($removed), 0),
                             ),
                             self::linesToString($added),
                         );
@@ -74,12 +74,12 @@ class DiffUtils
      */
     protected static function linesToString(?array $lines): string
     {
-        if ($lines === null || count($lines) === 0) {
+        if ($lines === null || \count($lines) === 0) {
             return '';
         }
 
-        $contents = array_map(fn (Line $line) => $line->content(), $lines);
+        $contents = \array_map(fn (Line $line) => $line->content(), $lines);
 
-        return implode("\n", $contents) . "\n";
+        return \implode("\n", $contents) . "\n";
     }
 }

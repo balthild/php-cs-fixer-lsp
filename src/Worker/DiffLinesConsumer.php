@@ -29,12 +29,12 @@ class DiffLinesConsumer
 
     public function eat(): ?Line
     {
-        if ($this->position >= count($this->chunk->lines())) {
+        if ($this->position >= \count($this->chunk->lines())) {
             return null;
         }
 
         $line = $this->chunk->lines()[$this->position++];
-        if (in_array($line->type(), [Line::REMOVED, Line::UNCHANGED], true)) {
+        if (\in_array($line->type(), [Line::REMOVED, Line::UNCHANGED], true)) {
             $this->origLine++;
         }
 
@@ -56,7 +56,7 @@ class DiffLinesConsumer
             $this->rewind();
         }
 
-        if (count($lines) === 0) {
+        if (\count($lines) === 0) {
             return null;
         }
 
@@ -101,7 +101,7 @@ class DiffLinesConsumer
         $this->position--;
         $line = $this->current();
 
-        if ($line && in_array($line->type(), [Line::REMOVED, Line::UNCHANGED], true)) {
+        if ($line && \in_array($line->type(), [Line::REMOVED, Line::UNCHANGED], true)) {
             $this->origLine--;
         }
     }

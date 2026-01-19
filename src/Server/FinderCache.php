@@ -29,7 +29,7 @@ class FinderCache implements ListenerProviderInterface
 
         $path = Helpers::uriToPath($uri);
 
-        return array_key_exists($path, $this->cache);
+        return \array_key_exists($path, $this->cache);
     }
 
     public function refresh(): void

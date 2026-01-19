@@ -30,3 +30,4 @@ prefer-arrow-function.enabled = false
 prefer-first-class-callable.enabled = false
 prefer-early-continue.enabled = false
 prefer-static-closure.enabled = false
+no-else-clause.enabled = false

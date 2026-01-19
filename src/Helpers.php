@@ -14,7 +14,7 @@ final class Helpers
 {
     public static function uriToPath(string $uri): string
     {
-        return urldecode(parse_url($uri, PHP_URL_PATH));
+        return \urldecode(\parse_url($uri, PHP_URL_PATH));
     }
 
     public static function getPhpCsFixerResolver(array $options = []): ConfigurationResolver
@@ -41,7 +41,7 @@ final class Helpers
         return new ConfigurationResolver(
             new Config(),
             $options,
-            getcwd(),
+            \getcwd(),
             new ToolInfo(),
         );
     }

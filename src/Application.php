@@ -27,7 +27,7 @@ class Application extends BaseApplication
         $input = new ArgvInput();
         $input->setInteractive(false);
 
-        $output = new StreamOutput(fopen('php://stderr', 'w'));
+        $output = new StreamOutput(\fopen('php://stderr', 'w'));
 
         return parent::run($input, $output);
     }

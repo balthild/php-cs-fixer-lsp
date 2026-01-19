@@ -28,7 +28,7 @@ class Formatter implements FormatterInterface
     public function format(TextDocumentItem $textDocument): Promise
     {
         // Non-file URIs are always formatted
-        if (str_starts_with($textDocument->uri, 'file://')) {
+        if (\str_starts_with($textDocument->uri, 'file://')) {
             if (!$this->finder->contains($textDocument->uri)) {
                 $this->logger->info(
                     "skipping {$textDocument->uri} because it's excluded by PHP-CS-Fixer configuration",
@@ -42,7 +42,7 @@ class Formatter implements FormatterInterface
         // Due to the limitations of PHP-CS-Fixer's implementation, we have to
         // write the code to a file to get it formatted. Fortunately, the temp
         // directory is usually in memory.
-        $temp = tempnam(sys_get_temp_dir(), 'php-cs-fixer-lsp-');
+        $temp = \tempnam(\sys_get_temp_dir(), 'php-cs-fixer-lsp-');
 
         return \Amp\call(function () use ($textDocument, $temp) {
             $this->logger->debug("writing code to temporary file {$temp}");
