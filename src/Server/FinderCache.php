@@ -14,6 +14,11 @@ use Psr\EventDispatcher\ListenerProviderInterface;
  */
 class FinderCache implements ListenerProviderInterface
 {
+    protected const CONFIGS = [
+        '.php-cs-fixer.php' => true,
+        '.php-cs-fixer.dist.php' => true,
+    ];
+
     protected array $cache = [];
 
     public function __construct()
@@ -56,6 +61,12 @@ class FinderCache implements ListenerProviderInterface
     {
         foreach ($event->events() as $item) {
             if ($item->type === FileChangeType::CREATED) {
+                $this->refresh();
+                return;
+            }
+
+            $filename = basename($item->uri);
+            if (self::CONFIGS[$filename] ?? false) {
                 $this->refresh();
                 return;
             }
