@@ -48,15 +48,11 @@ class IpcMainLoop
                         FormatRequest::class => $this->format($request),
                         default => $this->unknown($request),
                     };
-                    yield $channel->send($response);
                 } catch (\Throwable $exception) {
-                    // $this->logger->error($exception->getMessage(), [
-                    //     'request' => $request,
-                    //     'exception' => $exception,
-                    // ]);
-
-                    yield $channel->send(new ErrorResponse($exception));
+                    $response = new ErrorResponse($exception);
                 }
+
+                yield $channel->send($response);
             }
 
             $channel->close();
