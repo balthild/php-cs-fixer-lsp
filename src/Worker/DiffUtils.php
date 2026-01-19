@@ -78,7 +78,7 @@ class DiffUtils
             return '';
         }
 
-        $contents = \array_map(fn (Line $line) => $line->content(), $lines);
+        $contents = \array_map(static fn (Line $line) => $line->content(), $lines);
 
         return \implode("\n", $contents) . "\n";
     }

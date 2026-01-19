@@ -104,17 +104,17 @@ class WorkerPool implements ListenerProviderInterface
             $this->logger->debug("worker command: {$command}");
 
             $processes = \array_map(
-                fn () => new Process($command),
+                static fn () => new Process($command),
                 \range(0, $this->workers - 1),
             );
 
             yield Promise\all(\array_map(
-                fn (Process $process) => $process->start(),
+                static fn (Process $process) => $process->start(),
                 $processes,
             ));
 
             $channels = \array_map(
-                fn (Process $process) => new ChannelledStream(
+                static fn (Process $process) => new ChannelledStream(
                     $process->getStdout(),
                     $process->getStdin(),
                 ),
