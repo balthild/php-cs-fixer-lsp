@@ -13,7 +13,7 @@
     "require": {
         "php": "^8.2",
         "composer-runtime-api": "^2.2",
-        "amphp/file": "^2.0",
+        "amphp/file": "dev-patch-1",
         "amphp/parallel": "^1.4",
         "amphp/process": "^1.1",
         "amphp/sync": "^1.4",
@@ -34,6 +34,12 @@
     "autoload-dev": {
         "psr-4": {
             "Balthild\\PhpCsFixerLsp\\Tests\\": "tests/"
+        }
+    },
+    "repositories": {
+        "amphp/file": {
+            "type": "vcs",
+            "url": "https://github.com/balthild/amphp-file"
         }
     },
     "config": {
