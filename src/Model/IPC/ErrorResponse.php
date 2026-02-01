@@ -7,6 +7,6 @@ namespace Balthild\PhpCsFixerLsp\Model\IPC;
 final class ErrorResponse
 {
     public function __construct(
-        public \Exception $exception,
+        public \Throwable $exception,
     ) {}
 }
