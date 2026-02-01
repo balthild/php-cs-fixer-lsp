@@ -11,7 +11,7 @@ use Amp\Promise;
 use Amp\Sync\Lock;
 use Amp\Sync\Semaphore;
 use Balthild\PhpCsFixerLsp\BiasedSemaphore;
-use Balthild\PhpCsFixerLsp\Model\IPC\ErrorResponse;
+use Balthild\PhpCsFixerLsp\Model\IPC\FailingResponse;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
@@ -66,8 +66,8 @@ class WorkerPool implements ListenerProviderInterface
 
             $lock->release();
 
-            if ($response instanceof ErrorResponse) {
-                throw $response->exception;
+            if ($response instanceof FailingResponse) {
+                throw new WorkerException($response);
             }
 
             return $response;

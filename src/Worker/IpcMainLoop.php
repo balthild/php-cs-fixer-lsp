@@ -10,7 +10,7 @@ use Amp\Loop;
 use Amp\Parallel\Sync\ChannelledSocket;
 use Amp\Promise;
 use Balthild\PhpCsFixerLsp\Helpers;
-use Balthild\PhpCsFixerLsp\Model\IPC\ErrorResponse;
+use Balthild\PhpCsFixerLsp\Model\IPC\FailingResponse;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatResponse;
 use PhpCsFixer\Console\ConfigurationResolver;
@@ -49,7 +49,7 @@ class IpcMainLoop
                         default => $this->unknown($request),
                     };
                 } catch (\Throwable $exception) {
-                    $response = new ErrorResponse($exception);
+                    $response = new FailingResponse($exception);
                 }
 
                 yield $channel->send($response);
