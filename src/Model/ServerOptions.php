@@ -36,7 +36,7 @@ final class ServerOptions
         if ($this->workers === 0) {
             $counter = new CpuCoreCounter(FinderRegistry::getDefaultLogicalFinders());
             $cores = $counter->getCountWithFallback(1);
-            $this->workers = \max(1, (int) \log($cores, 2));
+            $this->workers = (int) \log($cores + 1) + 1;
         }
     }
 }
