@@ -13,7 +13,7 @@ final class ServerOptions
     #[Option('Start the server on stdio')]
     public bool $stdio = false;
 
-    #[Option('Start the server on specified network port')]
+    #[Option('Start the server on specified tcp port')]
     public ?int $socket = null;
 
     #[Option('The number of worker processes. Specify 0 to auto-detect based on CPU cores')]
@@ -36,7 +36,7 @@ final class ServerOptions
         if ($this->workers === 0) {
             $counter = new CpuCoreCounter(FinderRegistry::getDefaultLogicalFinders());
             $cores = $counter->getCountWithFallback(1);
-            $this->workers = \max(1, (int) \log($cores - 1, 2) + 1);
+            $this->workers = \max(1, (int) \log($cores, 2));
         }
     }
 }
