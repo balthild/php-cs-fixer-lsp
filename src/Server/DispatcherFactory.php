@@ -6,7 +6,6 @@ namespace Balthild\PhpCsFixerLsp\Server;
 
 use Balthild\PhpCsFixerLsp\Application;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
-use Phpactor\LanguageServer\Adapter\DTL\DTLArgumentResolver;
 use Phpactor\LanguageServer\Adapter\Psr\AggregateEventDispatcher;
 use Phpactor\LanguageServer\Core\Dispatcher\ArgumentResolver\ChainArgumentResolver;
 use Phpactor\LanguageServer\Core\Dispatcher\ArgumentResolver\LanguageSeverProtocolParamsResolver;
@@ -18,7 +17,6 @@ use Phpactor\LanguageServer\Core\Handler\HandlerMethodRunner;
 use Phpactor\LanguageServer\Core\Handler\Handlers;
 use Phpactor\LanguageServer\Core\Server\Transmitter\MessageTransmitter;
 use Phpactor\LanguageServer\Core\Workspace\Workspace;
-use Phpactor\LanguageServer\Handler\TextDocument\FormattingHandler;
 use Phpactor\LanguageServer\Handler\TextDocument\TextDocumentHandler;
 use Phpactor\LanguageServer\Handler\Workspace\DidChangeWatchedFilesHandler;
 use Phpactor\LanguageServer\Listener\WorkspaceListener;
@@ -62,7 +60,6 @@ class DispatcherFactory implements DispatcherFactoryInterface
             $handlers,
             new ChainArgumentResolver(
                 new LanguageSeverProtocolParamsResolver(),
-                new DTLArgumentResolver(),
                 new PassThroughArgumentResolver(),
             ),
         );
