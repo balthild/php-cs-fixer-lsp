@@ -6,7 +6,7 @@ namespace Balthild\PhpCsFixerLsp\Server;
 
 use Amp\Promise;
 use Amp\Success;
-use Balthild\PhpCsFixerLsp\DynamicLogger;
+use Balthild\PhpCsFixerLsp\SimpleLogger;
 use Phpactor\LanguageServer\Core\Handler\Handler;
 use Phpactor\LanguageServerProtocol\DidChangeConfigurationParams;
 use Psr\Log\LoggerInterface;
@@ -30,7 +30,7 @@ class ConfigurationHandler implements Handler
     {
         $settings = $params->settings['php-cs-fixer-lsp'];
 
-        if ($this->logger instanceof DynamicLogger) {
+        if ($this->logger instanceof SimpleLogger) {
             $this->logger->setLevel(match ($settings['logLevel'] ?? 'info') {
                 'debug' => LogLevel::DEBUG,
                 'info' => LogLevel::INFO,

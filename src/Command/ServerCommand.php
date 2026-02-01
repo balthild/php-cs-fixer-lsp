@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Command;
 
-use Balthild\PhpCsFixerLsp\DynamicLogger;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
 use Balthild\PhpCsFixerLsp\Server\DispatcherFactory;
+use Balthild\PhpCsFixerLsp\SimpleLogger;
 use Phpactor\LanguageServer\LanguageServerBuilder;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\MapInput;
@@ -20,7 +20,7 @@ class ServerCommand extends Command
     {
         $options->resolve();
 
-        $logger = new DynamicLogger($output);
+        $logger = new SimpleLogger($output);
         $factory = new DispatcherFactory($options, $logger);
         $server = LanguageServerBuilder::create($factory);
 
