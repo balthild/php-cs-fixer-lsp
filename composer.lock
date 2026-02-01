@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "391e15d2a95952010def3d5d4a4bf800",
+    "content-hash": "489d78eb48394a8fa9dd9985449bc172",
     "packages": [
         {
             "name": "amphp/amp",
@@ -315,16 +315,16 @@
         },
         {
             "name": "amphp/file",
-            "version": "dev-patch-1",
+            "version": "2.x-dev",
             "source": {
                 "type": "git",
-                "url": "https://github.com/balthild/amphp-file.git",
-                "reference": "778c56a64cd043e8489d54166629ecbd30ab454c"
+                "url": "https://github.com/amphp/file.git",
+                "reference": "85d9b5a1faee45ca1c7c36f247c45ddf80697e34"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/balthild/amphp-file/zipball/778c56a64cd043e8489d54166629ecbd30ab454c",
-                "reference": "778c56a64cd043e8489d54166629ecbd30ab454c",
+                "url": "https://api.github.com/repos/amphp/file/zipball/85d9b5a1faee45ca1c7c36f247c45ddf80697e34",
+                "reference": "85d9b5a1faee45ca1c7c36f247c45ddf80697e34",
                 "shasum": ""
             },
             "require": {
@@ -348,31 +348,14 @@
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "Amp\\File\\": "src"
-                },
                 "files": [
                     "src/functions.php"
-                ]
-            },
-            "autoload-dev": {
+                ],
                 "psr-4": {
-                    "Amp\\File\\Test\\": "test",
-                    "Amp\\Sync\\Test\\": "vendor/amphp/sync/test"
+                    "Amp\\File\\": "src"
                 }
             },
-            "scripts": {
-                "check": [
-                    "@code-style",
-                    "@test"
-                ],
-                "code-style": [
-                    "php-cs-fixer fix -v --diff"
-                ],
-                "test": [
-                    "@php -dzend.assertions=1 -dassert.exception=1 ./vendor/bin/phpunit --coverage-text"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -405,9 +388,15 @@
             ],
             "support": {
                 "issues": "https://github.com/amphp/file/issues",
-                "source": "https://github.com/balthild/amphp-file/tree/patch-1"
+                "source": "https://github.com/amphp/file/tree/2.x"
             },
-            "time": "2026-01-19T02:24:36+00:00"
+            "funding": [
+                {
+                    "url": "https://github.com/amphp",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-01-19T06:14:58+00:00"
         },
         {
             "name": "amphp/parallel",

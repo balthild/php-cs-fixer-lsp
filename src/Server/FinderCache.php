@@ -10,7 +10,7 @@ use Phpactor\LanguageServerProtocol\FileChangeType;
 use Psr\EventDispatcher\ListenerProviderInterface;
 
 /**
- * Symfony Finder does not provide an efficient way to check if a path is found.
+ * Symfony Finder does not provide an efficient way to check if a path can be found.
  */
 class FinderCache implements ListenerProviderInterface
 {
@@ -66,7 +66,7 @@ class FinderCache implements ListenerProviderInterface
             }
 
             $filename = basename($item->uri);
-            if (self::CONFIGS[$filename] ?? false) {
+            if (\array_key_exists($filename, self::CONFIGS)) {
                 $this->refresh();
                 return;
             }

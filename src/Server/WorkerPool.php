@@ -8,9 +8,9 @@ use Amp\Parallel\Sync\Channel;
 use Amp\Parallel\Sync\ChannelledStream;
 use Amp\Process\Process;
 use Amp\Promise;
-use Amp\Sync\LocalSemaphore;
 use Amp\Sync\Lock;
 use Amp\Sync\Semaphore;
+use Balthild\PhpCsFixerLsp\BiasedSemaphore;
 use Balthild\PhpCsFixerLsp\Model\IPC\ErrorResponse;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
@@ -42,7 +42,7 @@ class WorkerPool implements ListenerProviderInterface
         $this->logger = $logger;
         $this->workers = $options->workers;
         $this->status = WorkerPoolStatus::Uninitialized;
-        $this->semaphore = new LocalSemaphore($this->workers);
+        $this->semaphore = new BiasedSemaphore($this->workers);
     }
 
     /**
