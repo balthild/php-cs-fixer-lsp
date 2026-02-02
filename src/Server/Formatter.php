@@ -39,9 +39,30 @@ class Formatter implements FormatterInterface
 
         $this->logger->info("formatting {$textDocument->uri}");
 
-        // Due to the limitations of PHP-CS-Fixer's implementation, we have to
-        // write the code to a file to get it formatted. Fortunately, the temp
-        // directory is usually in memory.
+        if (filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) {
+            // By default, data URIs are accepted by `file_get_contents`.
+            return $this->formatWithDataUri($textDocument);
+        } else {
+            // Due to the limitations of PHP-CS-Fixer's implementation, we have
+            // to provide a path to the code. Fortunately, on Unix-like systems,
+            // the temp directory is usually in memory.
+            return $this->formatWithTempFile($textDocument);
+        }
+    }
+
+    protected function formatWithDataUri(TextDocumentItem $textDocument): Promise
+    {
+        return \Amp\call(function () use ($textDocument) {
+            $this->logger->debug('calling worker with code');
+            $request = new FormatRequest(text: $textDocument->text);
+            $response = yield $this->workers->call($request);
+
+            return $response->edits;
+        });
+    }
+
+    protected function formatWithTempFile(TextDocumentItem $textDocument): Promise
+    {
         $temp = \tempnam(\sys_get_temp_dir(), 'php-cs-fixer-lsp-');
 
         return \Amp\call(function () use ($textDocument, $temp) {
@@ -49,7 +70,8 @@ class Formatter implements FormatterInterface
             yield File\write($temp, $textDocument->text);
 
             $this->logger->debug("calling worker with path {$temp}");
-            $response = yield $this->workers->call(new FormatRequest(path: $temp));
+            $request = new FormatRequest(path: $temp);
+            $response = yield $this->workers->call($request);
 
             $this->logger->debug("deleting temporary file {$temp}");
             yield File\deleteFile($temp);

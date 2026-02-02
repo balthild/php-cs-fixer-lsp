@@ -66,7 +66,13 @@ class IpcMainLoop
     public function format(FormatRequest $request): Promise
     {
         return \Amp\call(function () use ($request) {
-            $this->runner->setFileIterator(new \ArrayIterator([new \SplFileInfo($request->path)]));
+            $file = match (true) {
+                $request->text !== null => new DataUriFileInfo($request->text),
+                $request->path !== null => new \SplFileInfo($request->path),
+                default => throw new \RuntimeException('Either path or text must be provided'),
+            };
+
+            $this->runner->setFileIterator(new \ArrayIterator([$file]));
 
             $results = $this->runner->fix();
             $info = array_pop($results);
