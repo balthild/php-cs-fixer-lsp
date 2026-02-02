@@ -6,7 +6,7 @@ namespace Balthild\PhpCsFixerLsp\Model\IPC;
 
 final class FailingResponse
 {
-    protected array $serialized;
+    private array $serialized;
 
     public function __construct(\Throwable $exception)
     {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Balthild\PhpCsFixerLsp;
 
 use Amp\Deferred;
@@ -35,11 +37,13 @@ class BiasedSemaphore implements Semaphore
     /** {@inheritdoc} */
     public function acquire(): Promise
     {
-        if (!empty($this->locks)) {
+        if ($this->locks) {
             return new Success(new Lock(\array_pop($this->locks), $this->release(...)));
         }
 
-        $this->queue[] = $deferred = new Deferred();
+        $deferred = new Deferred();
+        $this->queue[] = $deferred;
+
         return $deferred->promise();
     }
 
