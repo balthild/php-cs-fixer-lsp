@@ -17,7 +17,7 @@ final class DataUriFileInfo extends \SplFileInfo
     public function __construct(string $text)
     {
         parent::__construct(__FILE__);
-        $this->uri = 'data:text/plain;charset=utf-8,' . urlencode($text);
+        $this->uri = 'data:text/plain;base64,' . base64_encode($text);
     }
 
     #[\Override]
