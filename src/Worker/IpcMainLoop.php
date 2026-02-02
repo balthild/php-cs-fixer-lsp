@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Balthild\PhpCsFixerLsp\Worker;
 
 use Amp\Failure;
-use Amp\File;
 use Amp\Loop;
 use Amp\Parallel\Sync\ChannelledSocket;
 use Amp\Promise;
@@ -18,6 +17,7 @@ use PhpCsFixer\Console\Output\Progress\ProgressOutputType;
 use PhpCsFixer\Error\ErrorsManager;
 use PhpCsFixer\Runner\Runner;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class IpcMainLoop
 {
@@ -29,7 +29,7 @@ class IpcMainLoop
     {
         // logger does not work unless we inherit the stderr from server
         // but amphp/process hardcoded it to a pipe
-        $this->logger = $logger;
+        $this->logger = new NullLogger();
         $this->runner = $this->createRunner();
     }
 
@@ -66,14 +66,15 @@ class IpcMainLoop
     public function format(FormatRequest $request): Promise
     {
         return \Amp\call(function () use ($request) {
-            $before = yield File\read($request->path);
-
             $this->runner->setFileIterator(new \ArrayIterator([new \SplFileInfo($request->path)]));
-            $this->runner->fix();
 
-            $after = yield File\read($request->path);
+            $results = $this->runner->fix();
+            $info = array_pop($results);
+            if ($info === null) {
+                return new FormatResponse(null);
+            }
 
-            return new FormatResponse(DiffUtils::diffToTextEdits($before, $after));
+            return new FormatResponse(DiffUtils::diffToTextEdits($info['diff']));
         });
     }
 
@@ -91,7 +92,9 @@ class IpcMainLoop
     protected function createRunner(): Runner
     {
         $resolver = Helpers::getPhpCsFixerResolver([
+            'diff' => true,
             'sequential' => true,
+            'dry-run' => true,
             'using-cache' => ConfigurationResolver::BOOL_NO,
             'show-progress' => ProgressOutputType::NONE,
         ]);

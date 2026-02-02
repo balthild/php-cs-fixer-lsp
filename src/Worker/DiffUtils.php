@@ -7,9 +7,7 @@ namespace Balthild\PhpCsFixerLsp\Worker;
 use Phpactor\LanguageServerProtocol\Position;
 use Phpactor\LanguageServerProtocol\Range;
 use Phpactor\LanguageServerProtocol\TextEdit;
-use SebastianBergmann\Diff\Differ;
 use SebastianBergmann\Diff\Line;
-use SebastianBergmann\Diff\Output\StrictUnifiedDiffOutputBuilder;
 use SebastianBergmann\Diff\Parser;
 
 /**
@@ -21,13 +19,9 @@ class DiffUtils
     /**
      * @return TextEdit[]
      */
-    public static function diffToTextEdits(string $before, string $after): array
+    public static function diffToTextEdits(string $diffText): array
     {
-        $options = ['fromFile' => 'before.php', 'toFile' => 'after.php'];
-        $differ = new Differ(new StrictUnifiedDiffOutputBuilder($options));
-        $parser = new Parser();
-
-        $diffs = $parser->parse($differ->diff($before, $after));
+        $diffs = (new Parser())->parse($diffText);
 
         $edits = [];
         foreach ($diffs as $diff) {

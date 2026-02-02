@@ -19,7 +19,7 @@ final class Helpers
 
     public static function getPhpCsFixerResolver(array $options = []): ConfigurationResolver
     {
-        $options = [
+        $default = [
             'allow-risky' => null,
             'config' => null,
             'dry-run' => false,
@@ -35,12 +35,11 @@ final class Helpers
             'verbosity' => OutputInterface::VERBOSITY_NORMAL,
             'show-progress' => null,
             'sequential' => false,
-            ...$options,
         ];
 
         return new ConfigurationResolver(
             new Config(),
-            $options,
+            $options + $default,
             \getcwd(),
             new ToolInfo(),
         );
