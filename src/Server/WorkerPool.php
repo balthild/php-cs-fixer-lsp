@@ -24,8 +24,8 @@ use Symfony\Component\Process\PhpExecutableFinder;
 class WorkerPool implements ListenerProviderInterface
 {
     protected readonly LoggerInterface $logger;
-
-    public readonly int $workers;
+    protected readonly int $workers;
+    protected readonly bool $opcache;
 
     protected WorkerPoolStatus $status;
 
@@ -41,6 +41,8 @@ class WorkerPool implements ListenerProviderInterface
     {
         $this->logger = $logger;
         $this->workers = $options->workers;
+        $this->opcache = $options->opcache;
+
         $this->status = WorkerPoolStatus::Uninitialized;
         $this->semaphore = new BiasedSemaphore($this->workers);
     }
@@ -94,8 +96,8 @@ class WorkerPool implements ListenerProviderInterface
             $this->logger->info("initializing worker pool with {$this->workers} workers");
             $this->status = WorkerPoolStatus::Transitioning;
 
-            $php = (new PhpExecutableFinder())->find(false);
-            $main = $this->getMainScript();
+            $php = $this->getPhpCommand();
+            $main = escapeshellarg($this->getMainScript());
             $command = "{$php} {$main} worker";
             $this->logger->debug("worker command: {$command}");
 
@@ -152,6 +154,23 @@ class WorkerPool implements ListenerProviderInterface
             $this->logger->info('worker pool shut down');
             $this->status = WorkerPoolStatus::Deinitialized;
         });
+    }
+
+    protected function getPhpCommand(): string
+    {
+        $command = (new PhpExecutableFinder())->find(false);
+
+        if ($this->opcache) {
+            $command .= ' -d opcache.enable=1';
+            $command .= ' -d opcache.enable_cli=1';
+            $command .= ' -d opcache.validate_timestamps=0';
+            $command .= ' -d opcache.preload=';
+
+            // https://wiki.php.net/rfc/opcache.no_cache
+            // $command .= ' -d opcache.enable_cache=0';
+        }
+
+        return $command;
     }
 
     protected function getMainScript(): string

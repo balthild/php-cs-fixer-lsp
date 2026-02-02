@@ -19,6 +19,9 @@ final class ServerOptions
     #[Option('The number of worker processes. Specify 0 to auto-detect based on CPU cores')]
     public int $workers = 0;
 
+    #[Option('Enable opcache for worker processes if available')]
+    public bool $opcache = true;
+
     public function resolve(): void
     {
         if ($this->stdio === ($this->socket !== null)) {
@@ -37,6 +40,10 @@ final class ServerOptions
             $counter = new CpuCoreCounter(FinderRegistry::getDefaultLogicalFinders());
             $cores = $counter->getCountWithFallback(1);
             $this->workers = (int) \log($cores + 1) + 1;
+        }
+
+        if (!function_exists('opcache_get_status')) {
+            $this->opcache = false;
         }
     }
 }

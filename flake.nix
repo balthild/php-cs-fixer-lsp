@@ -28,6 +28,7 @@
             package = pkgs.php82.buildEnv {
               extensions = { all, enabled }: with all; enabled ++ [
                 xdebug
+                opcache
               ];
               extraConfig = ''
                 xdebug.mode = debug
