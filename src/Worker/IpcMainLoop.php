@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Worker;
 
-use Amp\Failure;
 use Amp\Loop;
 use Amp\Parallel\Sync\ChannelledSocket;
 use Amp\Promise;
