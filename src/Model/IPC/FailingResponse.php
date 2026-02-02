@@ -6,42 +6,19 @@ namespace Balthild\PhpCsFixerLsp\Model\IPC;
 
 final class FailingResponse
 {
-    private array $serialized;
+    public readonly string $message;
+    public readonly int $code;
+    public readonly string $file;
+    public readonly int $line;
+    public readonly string $trace;
 
     public function __construct(\Throwable $exception)
     {
-        $this->serialized = [
-            'message' => $exception->getMessage(),
-            'code' => $exception->getCode(),
-            'file' => $exception->getFile(),
-            'line' => $exception->getLine(),
-            'trace' => $exception->getTraceAsString(),
-        ];
-    }
-
-    public function message(): string
-    {
-        return $this->serialized['message'];
-    }
-
-    public function code(): int
-    {
-        return $this->serialized['code'];
-    }
-
-    public function file(): string
-    {
-        return $this->serialized['file'];
-    }
-
-    public function line(): int
-    {
-        return $this->serialized['line'];
-    }
-
-    public function trace(): string
-    {
-        return $this->serialized['trace'];
+        $this->message = $exception->getMessage();
+        $this->code = $exception->getCode();
+        $this->file = $exception->getFile();
+        $this->line = $exception->getLine();
+        $this->trace = $exception->getTraceAsString();
     }
 
     public function __toString(): string
@@ -49,10 +26,10 @@ final class FailingResponse
         return \sprintf(
             "%s: %s in %s(%d)\nStack trace:\n%s",
             static::class,
-            $this->serialized['message'],
-            $this->serialized['file'],
-            $this->serialized['line'],
-            $this->serialized['trace'],
+            $this->message,
+            $this->file,
+            $this->line,
+            $this->trace,
         );
     }
 }

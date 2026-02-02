@@ -10,6 +10,6 @@ class WorkerException extends \Exception
 {
     public function __construct(public readonly FailingResponse $response)
     {
-        parent::__construct($response->message(), $response->code());
+        parent::__construct($response->message, $response->code);
     }
 }

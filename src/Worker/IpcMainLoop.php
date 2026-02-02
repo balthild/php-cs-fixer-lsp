@@ -17,7 +17,6 @@ use PhpCsFixer\Console\Output\Progress\ProgressOutputType;
 use PhpCsFixer\Error\ErrorsManager;
 use PhpCsFixer\Runner\Runner;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
 class IpcMainLoop
 {

@@ -7,6 +7,8 @@ namespace Balthild\PhpCsFixerLsp\Worker;
 /**
  * Copied and modified from PhpCsFixer\StdinFileInfo.
  * Originally MIT licensed.
+ *
+ * @mago-expect lint:too-many-methods
  */
 final class DataUriFileInfo extends \SplFileInfo
 {
