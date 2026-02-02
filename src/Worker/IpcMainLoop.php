@@ -52,7 +52,7 @@ class IpcMainLoop
     /**
      * @return Promise<Response|ExceptionInfo>
      */
-    protected function handle(mixed $request): Promise
+    public function handle(mixed $request): Promise
     {
         return \Amp\call(function () use ($request) {
             $type = \is_object($request) ? $request::class : \gettype($request);
@@ -71,7 +71,7 @@ class IpcMainLoop
     /**
      * @return Promise<FormatResponse>
      */
-    protected function format(FormatRequest $request): Promise
+    public function format(FormatRequest $request): Promise
     {
         return \Amp\call(function () use ($request) {
             $file = match (true) {
