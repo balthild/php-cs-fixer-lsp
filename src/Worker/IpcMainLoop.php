@@ -27,9 +27,7 @@ class IpcMainLoop
 
     public function __construct(LoggerInterface $logger)
     {
-        // logger does not work unless we inherit the stderr from server
-        // but amphp/process hardcoded it to a pipe
-        $this->logger = new NullLogger();
+        $this->logger = $logger;
         $this->runner = $this->createRunner();
     }
 
