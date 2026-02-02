@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Balthild\PhpCsFixerLsp\Model\IPC;
+namespace Balthild\PhpCsFixerLsp\Model;
 
-final class FailingResponse
+final class ExceptionInfo
 {
+    public readonly string $class;
     public readonly string $message;
     public readonly int $code;
     public readonly string $file;
@@ -14,6 +15,7 @@ final class FailingResponse
 
     public function __construct(\Throwable $exception)
     {
+        $this->class = $exception::class;
         $this->message = $exception->getMessage();
         $this->code = $exception->getCode();
         $this->file = $exception->getFile();
@@ -21,15 +23,17 @@ final class FailingResponse
         $this->trace = $exception->getTraceAsString();
     }
 
-    public function __toString(): string
+    public function description(): string
     {
-        return \sprintf(
-            "%s: %s in %s(%d)\nStack trace:\n%s",
-            static::class,
-            $this->message,
-            $this->file,
-            $this->line,
-            $this->trace,
-        );
+        return "{$this->class}: {$this->message} in {$this->file}({$this->line})";
+    }
+
+    public function details(): string
+    {
+        return <<<EOF
+        {$this->description()}
+        Stack trace:
+        {$this->trace}
+        EOF;
     }
 }

@@ -66,6 +66,7 @@ class DispatcherFactory implements DispatcherFactoryInterface
 
         return new MiddlewareDispatcher(
             new ErrorHandlingMiddleware($this->logger),
+            new ExceptionMiddleware($this->logger),
             new InitializeMiddleware($handlers, $dispatcher, [
                 'name' => Application::name(),
                 'version' => Application::version(),

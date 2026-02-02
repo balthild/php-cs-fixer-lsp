@@ -9,9 +9,10 @@ use Amp\Loop;
 use Amp\Parallel\Sync\ChannelledSocket;
 use Amp\Promise;
 use Balthild\PhpCsFixerLsp\Helpers;
-use Balthild\PhpCsFixerLsp\Model\IPC\FailingResponse;
+use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatResponse;
+use Balthild\PhpCsFixerLsp\Model\IPC\Response;
 use PhpCsFixer\Console\ConfigurationResolver;
 use PhpCsFixer\Console\Output\Progress\ProgressOutputType;
 use PhpCsFixer\Error\ErrorsManager;
@@ -40,15 +41,7 @@ class IpcMainLoop
 
             // @mago-expect lint:no-assign-in-condition
             while ($request = yield $channel->receive()) {
-                try {
-                    $response = yield match (\get_class($request)) {
-                        FormatRequest::class => $this->format($request),
-                        default => $this->unknown($request),
-                    };
-                } catch (\Throwable $exception) {
-                    $response = new FailingResponse($exception);
-                }
-
+                $response = yield $this->handle($request);
                 yield $channel->send($response);
             }
 
@@ -58,9 +51,28 @@ class IpcMainLoop
     }
 
     /**
+     * @return Promise<Response|ExceptionInfo>
+     */
+    protected function handle(mixed $request): Promise
+    {
+        return \Amp\call(function () use ($request) {
+            $type = \is_object($request) ? $request::class : \gettype($request);
+
+            try {
+                return match ($type) {
+                    FormatRequest::class => yield $this->format($request),
+                    default => throw new \RuntimeException("Unknown request type: {$type}"),
+                };
+            } catch (\Throwable $exception) {
+                return new ExceptionInfo($exception);
+            }
+        });
+    }
+
+    /**
      * @return Promise<FormatResponse>
      */
-    public function format(FormatRequest $request): Promise
+    protected function format(FormatRequest $request): Promise
     {
         return \Amp\call(function () use ($request) {
             $file = match (true) {
@@ -79,17 +91,6 @@ class IpcMainLoop
 
             return new FormatResponse(DiffUtils::diffToTextEdits($info['diff']));
         });
-    }
-
-    public function unknown(mixed $request): Promise
-    {
-        $type = match (true) {
-            \is_array($request) => 'array',
-            \is_object($request) => \get_class($request),
-            default => \gettype($request),
-        };
-
-        return new Failure(new \RuntimeException("Unknown request: {$type}"));
     }
 
     protected function createRunner(): Runner

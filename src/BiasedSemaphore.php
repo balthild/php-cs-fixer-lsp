@@ -28,7 +28,7 @@ class BiasedSemaphore implements Semaphore
     public function __construct(int $maxLocks)
     {
         if ($maxLocks < 1) {
-            throw new \Error('The number of locks must be greater than 0');
+            throw new \LogicException('The number of locks must be greater than 0');
         }
 
         $this->locks = \range(0, $maxLocks - 1);
