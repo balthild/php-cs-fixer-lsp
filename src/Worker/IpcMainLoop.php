@@ -12,11 +12,15 @@ use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatResponse;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
+use PhpCsFixer\Cache\NullCacheManager;
 use PhpCsFixer\Console\ConfigurationResolver;
 use PhpCsFixer\Console\Output\Progress\ProgressOutputType;
 use PhpCsFixer\Error\ErrorsManager;
+use PhpCsFixer\Runner\Parallel\ParallelConfigFactory;
 use PhpCsFixer\Runner\Runner;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\StringInput;
 
 class IpcMainLoop
 {
@@ -92,6 +96,9 @@ class IpcMainLoop
         });
     }
 
+    /**
+     * @see \PhpCsFixer\Console\Command\WorkerCommand::createRunner()
+     */
     protected function createRunner(): Runner
     {
         $resolver = Helpers::getPhpCsFixerResolver([
@@ -110,11 +117,11 @@ class IpcMainLoop
             errorsManager: new ErrorsManager(),
             linter: $resolver->getLinter(),
             isDryRun: $resolver->isDryRun(),
-            cacheManager: $resolver->getCacheManager(),
+            cacheManager: new NullCacheManager(),
             directory: $resolver->getDirectory(),
             stopOnViolation: $resolver->shouldStopOnViolation(),
-            parallelConfig: $resolver->getParallelConfig(),
-            input: null,
+            parallelConfig: ParallelConfigFactory::sequential(),
+            input: new ArrayInput([]),
             configFile: $resolver->getConfigFile(),
             ruleCustomisationPolicy: $resolver->getRuleCustomisationPolicy(),
         );
