@@ -20,7 +20,6 @@ use PhpCsFixer\Runner\Parallel\ParallelConfigFactory;
 use PhpCsFixer\Runner\Runner;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Input\StringInput;
 
 class IpcMainLoop
 {

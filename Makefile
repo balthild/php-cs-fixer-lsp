@@ -9,3 +9,7 @@ build:
 .PHONY: test
 test:
 	./vendor/bin/phpunit --colors=always ./tests
+
+.PHONY: lint
+lint:
+	mago lint
