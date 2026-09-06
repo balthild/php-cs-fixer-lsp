@@ -25,15 +25,11 @@ final class ExceptionInfo
 
     public function description(): string
     {
-        return "{$this->class}: {$this->message} in {$this->file}({$this->line})";
+        return "{$this->class}: {$this->message} in {$this->file}:{$this->line}";
     }
 
     public function details(): string
     {
-        return <<<EOF
-        {$this->description()}
-        Stack trace:
-        {$this->trace}
-        EOF;
+        return "{$this->description()}\nStack trace:\n{$this->trace}";
     }
 }

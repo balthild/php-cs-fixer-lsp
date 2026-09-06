@@ -8,7 +8,6 @@ use Amp\File;
 use Amp\Promise;
 use Amp\Success;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
-use Balthild\PhpCsFixerLsp\Server\WorkerPool;
 use Phpactor\LanguageServer\Core\Formatting\Formatter as FormatterInterface;
 use Phpactor\LanguageServerProtocol\TextDocumentItem;
 use Phpactor\LanguageServerProtocol\TextEdit;
@@ -30,9 +29,7 @@ class Formatter implements FormatterInterface
         // Non-file URIs are always formatted
         if (\str_starts_with($textDocument->uri, 'file://')) {
             if (!$this->finder->contains($textDocument->uri)) {
-                $this->logger->info(
-                    "skipping {$textDocument->uri} because it's excluded by PHP-CS-Fixer configuration",
-                );
+                $this->logger->info("skipping excluded file {$textDocument->uri}");
                 return new Success(null);
             }
         }
