@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Command;
 
-use Balthild\PhpCsFixerLsp\Worker\IpcMainLoop;
+use Balthild\PhpCsFixerLsp\Worker\EventLoop\ProcessEventLoop;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -19,7 +19,7 @@ class WorkerCommand extends Command
         // but amphp/process hardcoded it to a pipe
         $logger = new NullLogger();
 
-        $loop = new IpcMainLoop($logger);
+        $loop = new ProcessEventLoop($logger);
         $loop->run();
 
         return Command::SUCCESS;

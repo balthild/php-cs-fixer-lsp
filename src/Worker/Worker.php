@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Worker;
 
-use Amp\Loop;
-use Amp\Parallel\Sync\ChannelledSocket;
 use Balthild\PhpCsFixerLsp\Helpers;
-use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatResponse;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
@@ -20,7 +17,7 @@ use PhpCsFixer\Runner\Runner;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Input\ArrayInput;
 
-class IpcMainLoop
+class Worker
 {
     protected LoggerInterface $logger;
 
@@ -32,36 +29,17 @@ class IpcMainLoop
         $this->runner = $this->createRunner();
     }
 
-    public function run(): void
-    {
-        Loop::run(function () {
-            $channel = new ChannelledSocket(
-                \fopen('php://stdin', 'r'),
-                \fopen('php://stdout', 'w'),
-            );
-
-            // @mago-expect lint:no-assign-in-condition
-            while ($request = yield $channel->receive()) {
-                $response = $this->dispatch($request);
-                yield $channel->send($response);
-            }
-
-            $channel->close();
-            Loop::stop();
-        });
-    }
-
-    public function dispatch(mixed $request): Response|ExceptionInfo
+    public function dispatch(mixed $request): Response|\Throwable
     {
         $type = \is_object($request) ? $request::class : \gettype($request);
 
         try {
             return match ($type) {
                 FormatRequest::class => $this->format($request),
-                default => throw new \RuntimeException("Unknown request type: {$type}"),
+                default => new \RuntimeException("Unknown request type: {$type}"),
             };
         } catch (\Throwable $exception) {
-            return new ExceptionInfo($exception);
+            return $exception;
         }
     }
 
