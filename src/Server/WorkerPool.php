@@ -146,7 +146,7 @@ class WorkerPool implements ListenerProviderInterface
                     yield $this->channels[$lock->getId()]->send(null);
                     yield $this->processes[$lock->getId()]->join();
 
-                    yield $lock->release();
+                    $lock->release();
                 }),
                 \range(0, $this->workers - 1),
             ));
