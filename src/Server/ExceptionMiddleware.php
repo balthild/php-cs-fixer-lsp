@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Server;
 
+use Amp\CancelledException;
 use Amp\Promise;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Phpactor\LanguageServer\Core\Middleware\Middleware;
@@ -13,6 +14,7 @@ use Phpactor\LanguageServer\Core\Rpc\Message;
 use Phpactor\LanguageServer\Core\Rpc\RequestMessage;
 use Phpactor\LanguageServer\Core\Rpc\ResponseError;
 use Phpactor\LanguageServer\Core\Rpc\ResponseMessage;
+use Phpactor\LanguageServer\Core\Server\Exception\ServerControl;
 use Psr\Log\LoggerInterface;
 
 class ExceptionMiddleware implements Middleware
@@ -29,15 +31,17 @@ class ExceptionMiddleware implements Middleware
         return \Amp\call(function () use ($request, $handler) {
             try {
                 return yield $handler->handle($request);
+            } catch (ServerControl|CancelledException $exception) {
+                throw $exception;
             } catch (WorkerException $exception) {
-                return $this->handleError($request, $exception->info);
+                return $this->reportError($request, $exception->info);
             } catch (\Throwable $exception) {
-                return $this->handleError($request, new ExceptionInfo($exception));
+                return $this->reportError($request, new ExceptionInfo($exception));
             }
         });
     }
 
-    protected function handleError(Message $request, ExceptionInfo $info): ?ResponseMessage
+    protected function reportError(Message $request, ExceptionInfo $info): ?ResponseMessage
     {
         $this->logger->error(\sprintf(
             "error handling %s (%s)\n%s",
