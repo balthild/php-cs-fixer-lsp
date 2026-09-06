@@ -6,7 +6,6 @@ namespace Balthild\PhpCsFixerLsp\Worker;
 
 use Amp\Loop;
 use Amp\Parallel\Sync\ChannelledSocket;
-use Amp\Promise;
 use Balthild\PhpCsFixerLsp\Helpers;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
@@ -43,7 +42,7 @@ class IpcMainLoop
 
             // @mago-expect lint:no-assign-in-condition
             while ($request = yield $channel->receive()) {
-                $response = yield $this->handle($request);
+                $response = $this->dispatch($request);
                 yield $channel->send($response);
             }
 
@@ -52,47 +51,37 @@ class IpcMainLoop
         });
     }
 
-    /**
-     * @return Promise<Response|ExceptionInfo>
-     */
-    public function handle(mixed $request): Promise
+    public function dispatch(mixed $request): Response|ExceptionInfo
     {
-        return \Amp\call(function () use ($request) {
-            $type = \is_object($request) ? $request::class : \gettype($request);
+        $type = \is_object($request) ? $request::class : \gettype($request);
 
-            try {
-                return match ($type) {
-                    FormatRequest::class => yield $this->format($request),
-                    default => throw new \RuntimeException("Unknown request type: {$type}"),
-                };
-            } catch (\Throwable $exception) {
-                return new ExceptionInfo($exception);
-            }
-        });
+        try {
+            return match ($type) {
+                FormatRequest::class => $this->format($request),
+                default => throw new \RuntimeException("Unknown request type: {$type}"),
+            };
+        } catch (\Throwable $exception) {
+            return new ExceptionInfo($exception);
+        }
     }
 
-    /**
-     * @return Promise<FormatResponse>
-     */
-    public function format(FormatRequest $request): Promise
+    public function format(FormatRequest $request): FormatResponse
     {
-        return \Amp\call(function () use ($request) {
-            $file = match (true) {
-                $request->text !== null => new DataUriFileInfo($request->text),
-                $request->path !== null => new \SplFileInfo($request->path),
-                default => throw new \RuntimeException('Either path or text must be provided'),
-            };
+        $file = match (true) {
+            $request->text !== null => new DataUriFileInfo($request->text),
+            $request->path !== null => new \SplFileInfo($request->path),
+            default => throw new \RuntimeException('Either path or text must be provided'),
+        };
 
-            $this->runner->setFileIterator(new \ArrayIterator([$file]));
+        $this->runner->setFileIterator(new \ArrayIterator([$file]));
 
-            $results = $this->runner->fix();
-            $info = array_pop($results);
-            if ($info === null) {
-                return new FormatResponse(null);
-            }
+        $results = $this->runner->fix();
+        $info = array_pop($results);
+        if ($info === null) {
+            return new FormatResponse(null);
+        }
 
-            return new FormatResponse(DiffUtils::diffToTextEdits($info['diff']));
-        });
+        return new FormatResponse(DiffUtils::diffToTextEdits($info['diff']));
     }
 
     /**

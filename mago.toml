@@ -2,7 +2,7 @@
 php-version = "8.2"
 
 [source]
-paths = ["src/", "bin/"]
+paths = ["src/", "tests/", "bin/"]
 includes = ["vendor"]
 
 [formatter]
