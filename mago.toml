@@ -29,3 +29,6 @@ literal-named-argument.enabled = false
 prefer-arrow-function.enabled = false
 prefer-early-continue.enabled = false
 no-else-clause.enabled = false
+no-duplicate-match-arm.enabled = false
+
+readable-literal.min-digits = 6

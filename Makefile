@@ -13,3 +13,7 @@ test:
 .PHONY: lint
 lint:
 	mago lint
+
+.PHONY: fmt
+fmt:
+	mago format
