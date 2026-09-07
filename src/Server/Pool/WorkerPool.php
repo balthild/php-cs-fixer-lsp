@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
 use Amp\Promise;
+use Amp\Sync\Semaphore;
+use Balthild\PhpCsFixerLsp\BiasedSemaphore;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
@@ -15,6 +17,22 @@ use Psr\Log\LoggerInterface;
 
 abstract class WorkerPool implements ListenerProviderInterface
 {
+    protected readonly LoggerInterface $logger;
+
+    protected readonly int $workers;
+
+    protected WorkerPoolStatus $status;
+
+    protected Semaphore $semaphore;
+
+    protected function __construct(LoggerInterface $logger, ServerOptions $options)
+    {
+        $this->logger = $logger;
+        $this->workers = $options->workers;
+        $this->status = WorkerPoolStatus::Uninitialized;
+        $this->semaphore = new BiasedSemaphore($this->workers);
+    }
+
     /**
      * @template T of Response
      * @param Request<T> $request

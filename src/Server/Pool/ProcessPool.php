@@ -9,8 +9,6 @@ use Amp\Parallel\Sync\ChannelledStream;
 use Amp\Process\Process;
 use Amp\Promise;
 use Amp\Sync\Lock;
-use Amp\Sync\Semaphore;
-use Balthild\PhpCsFixerLsp\BiasedSemaphore;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
@@ -22,13 +20,7 @@ use Symfony\Component\Process\PhpExecutableFinder;
 
 class ProcessPool extends WorkerPool
 {
-    protected readonly LoggerInterface $logger;
-    protected readonly int $workers;
     protected readonly bool $opcache;
-
-    protected WorkerPoolStatus $status;
-
-    protected Semaphore $semaphore;
 
     /** @var Process[] */
     protected array $processes = [];
@@ -38,12 +30,9 @@ class ProcessPool extends WorkerPool
 
     public function __construct(LoggerInterface $logger, ServerOptions $options)
     {
-        $this->logger = $logger;
-        $this->workers = $options->workers;
-        $this->opcache = $options->opcache;
+        parent::__construct($logger, $options);
 
-        $this->status = WorkerPoolStatus::Uninitialized;
-        $this->semaphore = new BiasedSemaphore($this->workers);
+        $this->opcache = $options->opcache;
     }
 
     #[\Override]

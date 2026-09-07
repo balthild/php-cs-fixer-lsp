@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
 use Amp\Deferred;
-use Amp\Loop;
 use Amp\Promise;
 use Amp\Socket\ResourceSocket;
 use Amp\Socket\Server;
 use Amp\Sync\Lock;
-use Amp\Sync\Semaphore;
-use Balthild\PhpCsFixerLsp\BiasedSemaphore;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
@@ -25,16 +22,13 @@ use Phpactor\LanguageServer\Event\Initialized;
 use Phpactor\LanguageServer\Event\WillShutdown;
 use Psr\Log\LoggerInterface;
 
+/**
+ * @mago-expect lint:kan-defect
+ */
 class ParallelPool extends WorkerPool
 {
-    protected readonly LoggerInterface $logger;
-    protected readonly int $workers;
-
-    protected WorkerPoolStatus $status;
-
-    protected Semaphore $semaphore;
-
     protected Events $events;
+
     protected Server $waker;
     protected Channel $notifier;
     protected Runtime $bridge;
@@ -57,11 +51,7 @@ class ParallelPool extends WorkerPool
 
     public function __construct(LoggerInterface $logger, ServerOptions $options)
     {
-        $this->logger = $logger;
-        $this->workers = $options->workers;
-
-        $this->status = WorkerPoolStatus::Uninitialized;
-        $this->semaphore = new BiasedSemaphore($this->workers);
+        parent::__construct($logger, $options);
 
         $this->events = new Events();
         $this->events->setBlocking(false);
@@ -134,28 +124,7 @@ class ParallelPool extends WorkerPool
             );
 
             for ($i = 0; $i < $this->workers; $i++) {
-                $this->logger->debug("starting worker {$i}");
-
-                $runtime = new Runtime($this->getAutoloader());
-                $input = Channel::make(name: "{$i}-input", capacity: 1);
-                $output = Channel::make(name: "{$i}-output", capacity: 1);
-
-                $this->events->addChannel($output);
-
-                $this->runtimes[] = $runtime;
-                $this->inputs[] = $input;
-                $this->outputs[] = $output;
-                $this->resolvers[] = null;
-
-                $this->tasks[] = $runtime->run(
-                    static function ($input, $output, $notifier) {
-                        $loop = new ParallelEventLoop($input, $output, $notifier);
-                        $loop->run();
-                    },
-                    [$input, $output, $this->notifier],
-                );
-
-                $this->logger->debug("started worker {$i}");
+                $this->start($i);
             }
 
             $this->logger->info('worker pool initialized');
@@ -176,30 +145,59 @@ class ParallelPool extends WorkerPool
             $this->status = WorkerPoolStatus::Transitioning;
 
             $locks = yield Promise\all(\array_map(
-                fn () => \Amp\call(function () {
-                    /** @var Lock */
-                    $lock = yield $this->semaphore->acquire();
-
-                    $this->logger->debug("stopping worker {$lock->getId()}");
-
-                    $this->inputs[$lock->getId()]->send(null);
-                    $this->inputs[$lock->getId()]->close();
-                    $this->runtimes[$lock->getId()]->close();
-
-                    $this->logger->debug("stopped worker {$lock->getId()}");
-
-                    return $lock;
-                }),
+                fn () => $this->semaphore->acquire(),
                 \range(0, $this->workers - 1),
             ));
 
             foreach ($locks as $lock) {
+                $this->stop($lock->getId());
                 $lock->release();
             }
+
+            $this->waker->close();
+            $this->notifier->close();
+            $this->bridge->close();
 
             $this->logger->info('worker pool shut down');
             $this->status = WorkerPoolStatus::Deinitialized;
         });
+    }
+
+    protected function start(int $i)
+    {
+        $this->logger->debug("starting worker {$i}");
+
+        $runtime = new Runtime($this->getAutoloader());
+        $input = Channel::make(name: "{$i}-input", capacity: 1);
+        $output = Channel::make(name: "{$i}-output", capacity: 1);
+
+        $this->events->addChannel($output);
+
+        $this->runtimes[$i] = $runtime;
+        $this->inputs[$i] = $input;
+        $this->outputs[$i] = $output;
+        $this->resolvers[$i] = null;
+
+        $this->tasks[$i] = $runtime->run(
+            static function ($input, $output, $notifier) {
+                $loop = new ParallelEventLoop($input, $output, $notifier);
+                $loop->run();
+            },
+            [$input, $output, $this->notifier],
+        );
+
+        $this->logger->debug("started worker {$i}");
+    }
+
+    protected function stop(int $i)
+    {
+        $this->logger->debug("stopping worker {$i}");
+
+        $this->inputs[$i]->send(null);
+        $this->inputs[$i]->close();
+        $this->runtimes[$i]->close();
+
+        $this->logger->debug("stopped worker {$i}");
     }
 
     protected function poll(ResourceSocket $socket)
@@ -219,14 +217,14 @@ class ParallelPool extends WorkerPool
                     $this->resolvers[$id]->resolve($event->value);
                     $this->resolvers[$id] = null;
 
-                    // the channel was automatically removed when the event fires
+                    // the channel was automatically removed when an event fires
                     $this->events->addChannel($event->object);
                 }
 
                 $this->events->setBlocking(false);
             }
 
-            $this->logger->debug('finished polling events');
+            $this->logger->debug('events idle');
         }
     }
 
