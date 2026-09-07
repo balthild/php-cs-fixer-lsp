@@ -46,7 +46,7 @@ class ExceptionMiddleware implements Middleware
         $this->logger->error(\sprintf(
             "error handling %s (%s)\n%s",
             $request::class,
-            json_encode($request),
+            \json_encode($request),
             $info->details(),
         ));
 

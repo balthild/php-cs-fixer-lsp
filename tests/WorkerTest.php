@@ -18,13 +18,13 @@ final class WorkerTest extends TestCase
 
         $text = "<?php\necho 'Hello, World!';\n";
 
-        $temp = tempnam(sys_get_temp_dir(), 'worker-test-');
-        file_put_contents($temp, $text);
+        $temp = \tempnam(\sys_get_temp_dir(), 'worker-test-');
+        \file_put_contents($temp, $text);
 
         $request = new FormatRequest(path: $temp);
         $response = $main->dispatch($request);
 
-        unlink($temp);
+        \unlink($temp);
 
         $this->assertInstanceOf(FormatResponse::class, $response);
         $this->assertCount(1, $response->edits);

@@ -46,7 +46,7 @@ final class ServerOptions
             $this->workers = (int) \log($cores + 1) + 1;
         }
 
-        if (!function_exists('opcache_get_status')) {
+        if (!\function_exists('opcache_get_status')) {
             $this->opcache = false;
         }
     }

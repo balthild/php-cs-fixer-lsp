@@ -65,7 +65,7 @@ class FinderCache implements ListenerProviderInterface
                 return;
             }
 
-            $filename = basename($item->uri);
+            $filename = \basename($item->uri);
             if (\array_key_exists($filename, self::CONFIGS)) {
                 $this->refresh();
                 return;

@@ -77,7 +77,7 @@ class ProcessPool extends WorkerPool
             $this->status = WorkerPoolStatus::Transitioning;
 
             $php = $this->getPhpCommand();
-            $main = escapeshellarg($this->getMainScript());
+            $main = \escapeshellarg($this->getMainScript());
             $command = "{$php} {$main} worker";
             $this->logger->debug("worker command: {$command}");
 

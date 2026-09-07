@@ -37,7 +37,7 @@ class Formatter implements FormatterInterface
 
         $this->logger->info("formatting {$textDocument->uri}");
 
-        if (filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) {
+        if (\filter_var(\ini_get('allow_url_fopen'), \FILTER_VALIDATE_BOOLEAN)) {
             // by default, data URIs are accepted by `file_get_contents`.
             return $this->formatWithDataUri($textDocument);
         } else {

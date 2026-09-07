@@ -54,7 +54,7 @@ class Worker
         $this->runner->setFileIterator(new \ArrayIterator([$file]));
 
         $results = $this->runner->fix();
-        $info = array_pop($results);
+        $info = \array_pop($results);
         if ($info === null) {
             return new FormatResponse(null);
         }

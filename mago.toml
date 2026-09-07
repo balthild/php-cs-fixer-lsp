@@ -25,6 +25,8 @@ integrations = ["symfony"]
 
 [linter.rules]
 valid-docblock.enabled = true
+ambiguous-constant-access.enabled = true
+ambiguous-function-call.enabled = true
 literal-named-argument.enabled = false
 prefer-arrow-function.enabled = false
 prefer-early-continue.enabled = false

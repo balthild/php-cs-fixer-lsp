@@ -97,7 +97,6 @@ class ParallelPool extends WorkerPool
             $this->logger->info("initializing worker pool with {$this->workers} workers");
             $this->status = WorkerPoolStatus::Transitioning;
 
-            // TODO: use unix domain socket on Linux and macOS
             $this->logger->debug('starting waker socket server');
             $this->waker = Server::listen('tcp://127.0.0.1:0');
             \Amp\asyncCall(function () {
