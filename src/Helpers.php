@@ -12,6 +12,14 @@ use Symfony\Component\Finder\Finder;
 
 final class Helpers
 {
+    public static function bytes(string $data): iterable
+    {
+        $length = \strlen($data);
+        for ($i = 0; $i < $length; $i++) {
+            yield $data[$i];
+        }
+    }
+
     public static function uriToPath(string $uri): string
     {
         return \urldecode(\parse_url($uri, PHP_URL_PATH));

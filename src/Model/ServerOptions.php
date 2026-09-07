@@ -36,6 +36,10 @@ final class ServerOptions
             throw new \InvalidArgumentException('The number of workers must be non-negative.');
         }
 
+        if ($this->workers >= 128) {
+            throw new \InvalidArgumentException('The number of workers must be less than 128.');
+        }
+
         if ($this->workers === 0) {
             $counter = new CpuCoreCounter(FinderRegistry::getDefaultLogicalFinders());
             $cores = $counter->getCountWithFallback(1);

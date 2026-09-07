@@ -9,13 +9,13 @@ use Amp\Promise;
 use Amp\Socket\ResourceSocket;
 use Amp\Socket\Server;
 use Amp\Sync\Lock;
+use Balthild\PhpCsFixerLsp\Helpers;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
 use Balthild\PhpCsFixerLsp\Server\WorkerException;
 use Balthild\PhpCsFixerLsp\Worker\EventLoop\ParallelEventLoop;
 use parallel\Channel;
-use parallel\Events;
 use parallel\Future;
 use parallel\Runtime;
 use Phpactor\LanguageServer\Event\Initialized;
@@ -27,12 +27,10 @@ use Psr\Log\LoggerInterface;
  */
 class ParallelPool extends WorkerPool
 {
-    protected Events $events;
-
     protected Server $waker;
     protected Channel $notifier;
     protected Runtime $bridge;
-    protected Future $replayer;
+    protected Future $messenger;
 
     /** @var Runtime[] */
     protected array $runtimes = [];
@@ -52,9 +50,6 @@ class ParallelPool extends WorkerPool
     public function __construct(LoggerInterface $logger, ServerOptions $options)
     {
         parent::__construct($logger, $options);
-
-        $this->events = new Events();
-        $this->events->setBlocking(false);
     }
 
     #[\Override]
@@ -113,11 +108,12 @@ class ParallelPool extends WorkerPool
             $this->logger->debug('starting waker bridge thread');
             $this->notifier = new Channel(capacity: Channel::Infinite);
             $this->bridge = new Runtime($this->getAutoloader());
-            $this->replayer = $this->bridge->run(
+            $this->messenger = $this->bridge->run(
                 static function (Channel $notifier, string $waker) {
                     $client = \stream_socket_client($waker);
-                    while ($notifier->recv()) {
-                        \fwrite($client, "\n");
+                    // @mago-expect lint:no-assign-in-condition
+                    while ($repr = $notifier->recv()) {
+                        \fwrite($client, \chr($repr & 0x7F));
                     }
                     \fclose($client);
                 },
@@ -165,65 +161,54 @@ class ParallelPool extends WorkerPool
         });
     }
 
-    protected function start(int $i)
+    protected function start(int $id)
     {
-        $this->logger->debug("starting worker {$i}");
+        $this->logger->debug("starting worker {$id}");
 
         $runtime = new Runtime($this->getAutoloader());
-        $input = Channel::make(name: "{$i}-input", capacity: Channel::Infinite);
-        $output = Channel::make(name: "{$i}-output", capacity: Channel::Infinite);
+        $input = Channel::make(name: "{$id}-input", capacity: Channel::Infinite);
+        $output = Channel::make(name: "{$id}-output", capacity: Channel::Infinite);
 
-        $this->events->addChannel($output);
+        $this->runtimes[$id] = $runtime;
+        $this->inputs[$id] = $input;
+        $this->outputs[$id] = $output;
+        $this->resolvers[$id] = null;
 
-        $this->runtimes[$i] = $runtime;
-        $this->inputs[$i] = $input;
-        $this->outputs[$i] = $output;
-        $this->resolvers[$i] = null;
-
-        $this->tasks[$i] = $runtime->run(
-            static function ($input, $output, $notifier) {
-                $loop = new ParallelEventLoop($input, $output, $notifier);
+        $this->tasks[$id] = $runtime->run(
+            static function ($id, $input, $output, $notifier) {
+                $loop = new ParallelEventLoop($id, $input, $output, $notifier);
                 $loop->run();
             },
-            [$input, $output, $this->notifier],
+            [$id, $input, $output, $this->notifier],
         );
 
-        $this->logger->debug("started worker {$i}");
+        $this->logger->debug("started worker {$id}");
     }
 
-    protected function stop(int $i)
+    protected function stop(int $id)
     {
-        $this->logger->debug("stopping worker {$i}");
+        $this->logger->debug("stopping worker {$id}");
 
-        $this->inputs[$i]->send(null);
-        $this->inputs[$i]->close();
-        $this->runtimes[$i]->close();
+        $this->inputs[$id]->send(null);
+        $this->inputs[$id]->close();
+        $this->runtimes[$id]->close();
 
-        $this->logger->debug("stopped worker {$i}");
+        $this->logger->debug("stopped worker {$id}");
     }
 
     protected function poll(ResourceSocket $socket)
     {
-        while (yield $socket->read()) {
+        // @mago-expect lint:no-assign-in-condition
+        while ($data = yield $socket->read()) {
             $this->logger->debug('polling events');
 
-            // must process at least one event
-            $this->events->setBlocking(true);
+            foreach (Helpers::bytes($data) as $byte) {
+                $id = \ord($byte);
+                $this->logger->debug("processing event from worker {$id}");
 
-            // @mago-expect lint:no-assign-in-condition
-            while ($event = $this->events->poll()) {
-                $this->logger->debug("processing event from {$event->source}");
-
-                if ($event->type === Events\Event\Type::Read) {
-                    $id = (int) $event->source;
-                    $this->resolvers[$id]->resolve($event->value);
-                    $this->resolvers[$id] = null;
-
-                    // the channel was automatically removed when an event fires
-                    $this->events->addChannel($event->object);
-                }
-
-                $this->events->setBlocking(false);
+                $response = $this->outputs[$id]->recv();
+                $this->resolvers[$id]->resolve($response);
+                $this->resolvers[$id] = null;
             }
 
             $this->logger->debug('events idle');

@@ -13,15 +13,17 @@ class ParallelEventLoop
 {
     protected Worker $worker;
 
+    protected int $id;
     protected Channel $input;
     protected Channel $output;
     protected Channel $notifier;
 
-    public function __construct(Channel $input, Channel $output, Channel $notifier)
+    public function __construct(int $id, Channel $input, Channel $output, Channel $notifier)
     {
         $logger = new ChannelLogger($output);
         $this->worker = new Worker($logger);
 
+        $this->id = $id;
         $this->input = $input;
         $this->output = $output;
         $this->notifier = $notifier;
@@ -38,7 +40,7 @@ class ParallelEventLoop
             }
 
             $this->output->send($response);
-            $this->notifier->send(true);
+            $this->notifier->send($this->id | 0x80);
         }
 
         $this->output->close();
