@@ -232,9 +232,9 @@ class ParallelPool extends WorkerPool
 
     protected function getAutoloader(): string
     {
-        $phar = \Phar::running(false);
+        $phar = \Phar::running();
         if ($phar !== '') {
-            return $phar;
+            return "{$phar}/vendor/autoload.php";
         }
 
         $path = \realpath(__DIR__ . '/../../../vendor/autoload.php');

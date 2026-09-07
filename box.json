@@ -1,3 +1,4 @@
 {
+  "$schema": "https://cdn.jsdelivr.net/gh/box-project/box@4.7.0/res/schema.json",
   "output": "build/php-cs-fixer-lsp.phar"
 }

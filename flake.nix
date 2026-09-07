@@ -16,14 +16,15 @@
       systems = nixpkgs.lib.systems.flakeExposed;
 
       perSystem = { pkgs, config, ... }: {
-        packages = {
+        packages = rec {
           php82-zts = pkgs.php82.override { ztsSupport = true; };
+          box = pkgs.php82Packages.box.override { php82 = php82-zts; };
         };
 
         devenv.shells.default = {
           name = "php-cs-fixer-lsp";
 
-          packages = [ pkgs.php82Packages.box ];
+          packages = [ config.packages.box ];
 
           languages.php = {
             enable = true;
