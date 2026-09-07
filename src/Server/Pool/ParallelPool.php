@@ -111,7 +111,7 @@ class ParallelPool extends WorkerPool
             });
 
             $this->logger->debug('starting waker bridge thread');
-            $this->notifier = Channel::make(name: 'notifier', capacity: 1);
+            $this->notifier = new Channel(capacity: 1);
             $this->bridge = new Runtime($this->getAutoloader());
             $this->replayer = $this->bridge->run(
                 static function (Channel $notifier, string $waker) {
@@ -119,6 +119,7 @@ class ParallelPool extends WorkerPool
                     while ($notifier->recv()) {
                         \fwrite($client, "\n");
                     }
+                    \fclose($client);
                 },
                 [$this->notifier, $this->waker->getAddress()->toString()],
             );
@@ -155,6 +156,7 @@ class ParallelPool extends WorkerPool
             }
 
             $this->waker->close();
+            $this->notifier->send(null);
             $this->notifier->close();
             $this->bridge->close();
 
