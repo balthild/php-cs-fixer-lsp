@@ -9,6 +9,8 @@ use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Worker\Worker;
 use parallel\Channel;
 
+use function Balthild\PhpCsFixerLsp\let;
+
 class ParallelEventLoop
 {
     protected Worker $worker;
@@ -31,8 +33,7 @@ class ParallelEventLoop
 
     public function run(): void
     {
-        // @mago-expect lint:no-assign-in-condition
-        while ($request = $this->input->recv()) {
+        while (let($request, $this->input->recv())) {
             $response = $this->worker->dispatch($request);
 
             if ($response instanceof \Throwable) {
@@ -40,7 +41,7 @@ class ParallelEventLoop
             }
 
             $this->output->send($response);
-            $this->notifier->send($this->id | 0x80);
+            $this->notifier->send($this->id);
         }
 
         $this->output->close();

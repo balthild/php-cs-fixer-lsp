@@ -22,6 +22,8 @@ use Phpactor\LanguageServer\Event\Initialized;
 use Phpactor\LanguageServer\Event\WillShutdown;
 use Psr\Log\LoggerInterface;
 
+use function Balthild\PhpCsFixerLsp\let;
+
 /**
  * @mago-expect lint:kan-defect
  */
@@ -99,8 +101,7 @@ class ParallelPool extends WorkerPool
             $this->logger->debug('starting waker socket server');
             $this->waker = Server::listen('tcp://127.0.0.1:0');
             \Amp\asyncCall(function () {
-                // @mago-expect lint:no-assign-in-condition
-                while ($socket = yield $this->waker->accept()) {
+                while (let($socket, yield $this->waker->accept())) {
                     \Amp\asyncCall($this->poll(...), $socket);
                 }
             });
@@ -111,9 +112,8 @@ class ParallelPool extends WorkerPool
             $this->messenger = $this->bridge->run(
                 static function (Channel $notifier, string $waker) {
                     $client = \stream_socket_client($waker);
-                    // @mago-expect lint:no-assign-in-condition
-                    while ($repr = $notifier->recv()) {
-                        \fwrite($client, \chr($repr & 0x7F));
+                    while (let($id, $notifier->recv())) {
+                        \fwrite($client, \chr($id));
                     }
                     \fclose($client);
                 },
@@ -198,8 +198,7 @@ class ParallelPool extends WorkerPool
 
     protected function poll(ResourceSocket $socket)
     {
-        // @mago-expect lint:no-assign-in-condition
-        while ($data = yield $socket->read()) {
+        while (let($data, yield $socket->read())) {
             $this->logger->debug('polling events');
 
             foreach (Helpers::bytes($data) as $byte) {

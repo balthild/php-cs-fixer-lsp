@@ -10,6 +10,8 @@ use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Worker\Worker;
 use Psr\Log\LoggerInterface;
 
+use function Balthild\PhpCsFixerLsp\let;
+
 class ProcessEventLoop
 {
     protected Worker $worker;
@@ -27,8 +29,7 @@ class ProcessEventLoop
                 \fopen('php://stdout', 'w'),
             );
 
-            // @mago-expect lint:no-assign-in-condition
-            while ($request = yield $channel->receive()) {
+            while (let($request, yield $channel->receive())) {
                 $response = $this->worker->dispatch($request);
 
                 if ($response instanceof \Throwable) {

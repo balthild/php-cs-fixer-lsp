@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Server;
 
-use Amp\CancellationToken;
 use Amp\Promise;
 use Amp\Success;
 use Phpactor\LanguageServer\Core\Handler\Handler;
