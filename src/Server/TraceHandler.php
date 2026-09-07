@@ -24,7 +24,7 @@ class TraceHandler implements Handler
     /**
      * @return Promise<null>
      */
-    public function setTrace(string $value, CancellationToken $cancellation): Promise
+    public function setTrace(string $value): Promise
     {
         $this->logger->info("server trace level set to {$value}");
         return new Success();
