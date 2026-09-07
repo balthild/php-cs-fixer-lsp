@@ -14,8 +14,8 @@ use Amp\Sync\Semaphore;
  * Copied and modified from \Amp\Sync\LocalSemaphore.
  * Originally MIT licensed.
  *
- * Unlike LocalSemaphore which is FIFO (queue-like), this implementation is
- * LIFO (stack-like) in order to make it biased towards recently used locks.
+ * Unlike LocalSemaphore, which does a round-robin over the available locks (queue-like),
+ * this implementation always acquires the most recently released lock (stack-like).
  */
 class BiasedSemaphore implements Semaphore
 {

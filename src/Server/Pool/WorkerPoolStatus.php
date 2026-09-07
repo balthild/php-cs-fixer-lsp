@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Balthild\PhpCsFixerLsp\Server;
+namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
 enum WorkerPoolStatus
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Balthild\PhpCsFixerLsp\Server;
+namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
 use Amp\Parallel\Sync\Channel;
 use Amp\Parallel\Sync\ChannelledStream;
@@ -13,15 +13,14 @@ use Amp\Sync\Semaphore;
 use Balthild\PhpCsFixerLsp\BiasedSemaphore;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
-use Balthild\PhpCsFixerLsp\Model\IPC\Response;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
+use Balthild\PhpCsFixerLsp\Server\WorkerException;
 use Phpactor\LanguageServer\Event\Initialized;
 use Phpactor\LanguageServer\Event\WillShutdown;
-use Psr\EventDispatcher\ListenerProviderInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\PhpExecutableFinder;
 
-class WorkerPool implements ListenerProviderInterface
+class ProcessPool extends WorkerPool
 {
     protected readonly LoggerInterface $logger;
     protected readonly int $workers;
@@ -47,11 +46,7 @@ class WorkerPool implements ListenerProviderInterface
         $this->semaphore = new BiasedSemaphore($this->workers);
     }
 
-    /**
-     * @template T of Response
-     * @param Request<T> $request
-     * @return Promise<T>
-     */
+    #[\Override]
     public function call(Request $request): Promise
     {
         return \Amp\call(function () use ($request) {
@@ -62,9 +57,13 @@ class WorkerPool implements ListenerProviderInterface
             /** @var Lock */
             $lock = yield $this->semaphore->acquire();
 
+            $this->logger->debug("requesting worker {$lock->getId()}");
+
             $channel = $this->channels[$lock->getId()];
             yield $channel->send($request);
             $response = yield $channel->receive();
+
+            $this->logger->debug("get response from worker {$lock->getId()}");
 
             $lock->release();
 
@@ -76,15 +75,7 @@ class WorkerPool implements ListenerProviderInterface
         });
     }
 
-    public function getListenersForEvent(object $event): iterable
-    {
-        match (true) {
-            $event instanceof Initialized => yield $this->initialize(...),
-            $event instanceof WillShutdown => yield $this->shutdown(...),
-            default => null,
-        };
-    }
-
+    #[\Override]
     protected function initialize(Initialized $event): void
     {
         \Amp\asyncCall(function () {
@@ -127,6 +118,7 @@ class WorkerPool implements ListenerProviderInterface
         });
     }
 
+    #[\Override]
     protected function shutdown(WillShutdown $event): void
     {
         \Amp\asyncCall(function () {
@@ -138,18 +130,26 @@ class WorkerPool implements ListenerProviderInterface
             $this->logger->info('shutting down worker pool');
             $this->status = WorkerPoolStatus::Transitioning;
 
-            yield Promise\all(\array_map(
+            $locks = yield Promise\all(\array_map(
                 fn () => \Amp\call(function () {
                     /** @var Lock */
                     $lock = yield $this->semaphore->acquire();
 
+                    $this->logger->debug("stopping worker {$lock->getId()}");
+
                     yield $this->channels[$lock->getId()]->send(null);
                     yield $this->processes[$lock->getId()]->join();
 
-                    $lock->release();
+                    $this->logger->debug("stopped worker {$lock->getId()}");
+
+                    return $lock;
                 }),
                 \range(0, $this->workers - 1),
             ));
+
+            foreach ($locks as $lock) {
+                $lock->release();
+            }
 
             $this->logger->info('worker pool shut down');
             $this->status = WorkerPoolStatus::Deinitialized;
@@ -163,7 +163,7 @@ class WorkerPool implements ListenerProviderInterface
         if ($this->opcache) {
             $command .= ' -d opcache.enable=1';
             $command .= ' -d opcache.enable_cli=1';
-            $command .= ' -d opcache.validate_timestamps=0';
+            $command .= ' -d opcache.validate_timestamps=1';
             $command .= ' -d opcache.preload=';
 
             // https://wiki.php.net/rfc/opcache.no_cache
@@ -180,7 +180,7 @@ class WorkerPool implements ListenerProviderInterface
             return $phar;
         }
 
-        $path = \realpath(__DIR__ . '/../../bin/php-cs-fixer-lsp');
+        $path = \realpath(__DIR__ . '/../../../bin/php-cs-fixer-lsp');
         if (\is_file($path)) {
             return $path;
         }

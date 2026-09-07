@@ -15,8 +15,10 @@
       imports = [ inputs.devenv.flakeModule ];
       systems = nixpkgs.lib.systems.flakeExposed;
 
-      perSystem = { pkgs, ... }: {
-        packages = {};
+      perSystem = { pkgs, config, ... }: {
+        packages = {
+          php82-zts = pkgs.php82.override { ztsSupport = true; };
+        };
 
         devenv.shells.default = {
           name = "php-cs-fixer-lsp";
@@ -25,10 +27,11 @@
 
           languages.php = {
             enable = true;
-            package = pkgs.php82.buildEnv {
+            package = config.packages.php82-zts.buildEnv {
               extensions = { all, enabled }: with all; enabled ++ [
                 xdebug
                 opcache
+                parallel
               ];
               extraConfig = ''
                 xdebug.mode = debug

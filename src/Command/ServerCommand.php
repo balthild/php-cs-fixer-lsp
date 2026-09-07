@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Command;
 
+use Balthild\PhpCsFixerLsp\Logging\SimpleLogger;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
 use Balthild\PhpCsFixerLsp\Server\DispatcherFactory;
-use Balthild\PhpCsFixerLsp\SimpleLogger;
 use Phpactor\LanguageServer\LanguageServerBuilder;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\MapInput;

@@ -8,6 +8,7 @@ use Amp\File;
 use Amp\Promise;
 use Amp\Success;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
+use Balthild\PhpCsFixerLsp\Server\Pool\WorkerPool;
 use Phpactor\LanguageServer\Core\Formatting\Formatter as FormatterInterface;
 use Phpactor\LanguageServerProtocol\TextDocumentItem;
 use Phpactor\LanguageServerProtocol\TextEdit;
@@ -26,7 +27,7 @@ class Formatter implements FormatterInterface
      */
     public function format(TextDocumentItem $textDocument): Promise
     {
-        // Non-file URIs are always formatted
+        // non-file URIs are always formatted
         if (\str_starts_with($textDocument->uri, 'file://')) {
             if (!$this->finder->contains($textDocument->uri)) {
                 $this->logger->info("skipping excluded file {$textDocument->uri}");
@@ -37,10 +38,10 @@ class Formatter implements FormatterInterface
         $this->logger->info("formatting {$textDocument->uri}");
 
         if (filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) {
-            // By default, data URIs are accepted by `file_get_contents`.
+            // by default, data URIs are accepted by `file_get_contents`.
             return $this->formatWithDataUri($textDocument);
         } else {
-            // Due to the limitations of PHP-CS-Fixer's implementation, we have
+            // due to the limitations of PHP-CS-Fixer's implementation, we have
             // to provide a path to the code. Fortunately, on Unix-like systems,
             // the temp directory is usually in memory.
             return $this->formatWithTempFile($textDocument);

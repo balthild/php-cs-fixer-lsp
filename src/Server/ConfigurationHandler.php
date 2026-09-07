@@ -6,7 +6,7 @@ namespace Balthild\PhpCsFixerLsp\Server;
 
 use Amp\Promise;
 use Amp\Success;
-use Balthild\PhpCsFixerLsp\SimpleLogger;
+use Balthild\PhpCsFixerLsp\Logging\SimpleLogger;
 use Phpactor\LanguageServer\Core\Handler\Handler;
 use Phpactor\LanguageServerProtocol\DidChangeConfigurationParams;
 use Psr\Log\LoggerInterface;
