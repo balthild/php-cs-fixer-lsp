@@ -10,6 +10,8 @@ use SebastianBergmann\Diff\Line;
 /**
  * Copied and modified from \Phpactor\Diff\DiffLinesConsumer.
  * Originally MIT licensed.
+ *
+ * @see \Phpactor\Diff\DiffLinesConsumer
  */
 class DiffLinesConsumer
 {

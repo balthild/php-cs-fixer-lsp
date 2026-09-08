@@ -13,6 +13,8 @@ use SebastianBergmann\Diff\Parser;
 /**
  * Copied and modified from \Phpactor\Diff\DiffToTextEditsConverter.
  * Originally MIT licensed.
+ *
+ * @see \Phpactor\Diff\DiffToTextEditsConverter
  */
 class DiffUtils
 {

@@ -16,6 +16,8 @@ use Amp\Sync\Semaphore;
  *
  * Unlike LocalSemaphore, which does a round-robin over the available locks (queue-like),
  * this implementation always acquires the most recently released lock (stack-like).
+ *
+ * @see \Amp\Sync\LocalSemaphore
  */
 class BiasedSemaphore implements Semaphore
 {
@@ -38,7 +40,8 @@ class BiasedSemaphore implements Semaphore
     public function acquire(): Promise
     {
         if ($this->locks) {
-            return new Success(new Lock(\array_pop($this->locks), $this->release(...)));
+            $id = \array_pop($this->locks);
+            return new Success(new Lock($id, $this->release(...)));
         }
 
         $deferred = new Deferred();

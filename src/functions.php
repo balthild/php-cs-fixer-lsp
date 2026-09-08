@@ -6,10 +6,6 @@ namespace Balthild\PhpCsFixerLsp;
 
 function let(&$target, $source, $sentinal = null): bool
 {
-    if ($source === $sentinal) {
-        return false;
-    }
-
     $target = $source;
-    return true;
+    return $source !== $sentinal;
 }

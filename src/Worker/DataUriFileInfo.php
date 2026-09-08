@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Balthild\PhpCsFixerLsp\Worker;
 
 /**
- * Copied and modified from PhpCsFixer\StdinFileInfo.
+ * Copied and modified from \PhpCsFixer\StdinFileInfo.
  * Originally MIT licensed.
  *
  * @mago-expect lint:too-many-methods
+ * @see \PhpCsFixer\StdinFileInfo
  */
 final class DataUriFileInfo extends \SplFileInfo
 {
