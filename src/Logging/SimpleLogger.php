@@ -29,11 +29,11 @@ class SimpleLogger extends AbstractLogger
             LogLevel::EMERGENCY => OutputInterface::VERBOSITY_QUIET,
             LogLevel::ALERT => OutputInterface::VERBOSITY_QUIET,
             LogLevel::CRITICAL => OutputInterface::VERBOSITY_QUIET,
-            LogLevel::ERROR => OutputInterface::VERBOSITY_NORMAL,
+            LogLevel::ERROR => OutputInterface::VERBOSITY_QUIET,
             LogLevel::WARNING => OutputInterface::VERBOSITY_NORMAL,
-            LogLevel::NOTICE => OutputInterface::VERBOSITY_NORMAL,
-            LogLevel::INFO => OutputInterface::VERBOSITY_NORMAL,
-            LogLevel::DEBUG => OutputInterface::VERBOSITY_VERBOSE,
+            LogLevel::NOTICE => OutputInterface::VERBOSITY_VERBOSE,
+            LogLevel::INFO => OutputInterface::VERBOSITY_VERBOSE,
+            LogLevel::DEBUG => OutputInterface::VERBOSITY_VERY_VERBOSE,
             default => throw new \LogicException("The log level '{$level}' does not exist."),
         };
     }
