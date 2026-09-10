@@ -14,7 +14,8 @@ final class WorkerTest extends TestCase
 {
     public function testFormatWithTempFile(): void
     {
-        $main = new Worker($this->createMock(LoggerInterface::class));
+        $logger = $this->createMock(LoggerInterface::class);
+        $main = new Worker($logger);
 
         $text = "<?php\necho 'Hello, World!';\n";
 
@@ -32,7 +33,8 @@ final class WorkerTest extends TestCase
 
     public function testFormatWithDataUri(): void
     {
-        $main = new Worker($this->createMock(LoggerInterface::class));
+        $logger = $this->createMock(LoggerInterface::class);
+        $main = new Worker($logger);
 
         $text = "<?php\necho 'Hello, World!';\n";
 
@@ -46,7 +48,8 @@ final class WorkerTest extends TestCase
 
     public function testUnknownRequest(): void
     {
-        $main = new Worker($this->createMock(LoggerInterface::class));
+        $logger = $this->createMock(LoggerInterface::class);
+        $main = new Worker($logger);
 
         foreach (['string', 42, [], new \stdClass()] as $request) {
             $response = $main->dispatch($request);

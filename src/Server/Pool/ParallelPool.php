@@ -18,8 +18,6 @@ use Balthild\PhpCsFixerLsp\Worker\EventLoop\ParallelEventLoop;
 use parallel\Channel;
 use parallel\Future;
 use parallel\Runtime;
-use Phpactor\LanguageServer\Event\Initialized;
-use Phpactor\LanguageServer\Event\WillShutdown;
 use Psr\Log\LoggerInterface;
 
 use function Balthild\PhpCsFixerLsp\let;
@@ -86,9 +84,9 @@ class ParallelPool extends WorkerPool
     }
 
     #[\Override]
-    protected function initialize(Initialized $event): void
+    protected function initialize(): Promise
     {
-        \Amp\asyncCall(function () {
+        return \Amp\call(function () {
             if ($this->status !== WorkerPoolStatus::Uninitialized) {
                 $this->logger->warning('worker pool is already initialized or initializing');
                 return;
@@ -129,9 +127,9 @@ class ParallelPool extends WorkerPool
     }
 
     #[\Override]
-    protected function shutdown(WillShutdown $event): void
+    protected function shutdown(): Promise
     {
-        \Amp\asyncCall(function () {
+        return \Amp\call(function () {
             if ($this->status !== WorkerPoolStatus::Initialized) {
                 $this->logger->warning('worker pool is not initialized');
                 return;

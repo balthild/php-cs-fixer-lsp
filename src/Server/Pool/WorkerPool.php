@@ -40,17 +40,21 @@ abstract class WorkerPool implements ListenerProviderInterface
      */
     abstract public function call(Request $request): Promise;
 
-    abstract protected function initialize(Initialized $event): void;
+    abstract protected function initialize(): Promise;
 
-    abstract protected function shutdown(WillShutdown $event): void;
+    abstract protected function shutdown(): Promise;
 
     #[\Override]
     public function getListenersForEvent(object $event): iterable
     {
-        match (true) {
-            $event instanceof Initialized => yield $this->initialize(...),
-            $event instanceof WillShutdown => yield $this->shutdown(...),
-            default => null,
+        return match (true) {
+            $event instanceof Initialized => [
+                fn () => Promise\rethrow($this->initialize()),
+            ],
+            $event instanceof WillShutdown => [
+                fn () => Promise\rethrow($this->shutdown()),
+            ],
+            default => [],
         };
     }
 
