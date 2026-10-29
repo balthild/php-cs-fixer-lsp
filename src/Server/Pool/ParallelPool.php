@@ -203,8 +203,11 @@ class ParallelPool extends WorkerPool
                 $this->logger->debug("processing event from worker {$id}");
 
                 $response = $this->outputs[$id]->recv();
-                $this->resolvers[$id]->resolve($response);
+
+                $resolver = $this->resolvers[$id];
                 $this->resolvers[$id] = null;
+
+                $resolver->resolve($response);
             }
 
             $this->logger->debug('events idle');
