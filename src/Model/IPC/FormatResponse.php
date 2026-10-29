@@ -10,6 +10,6 @@ final class FormatResponse implements Response
 {
     public function __construct(
         /** @var TextEdit[]|null */
-        public ?array $edits,
+        public readonly ?array $edits,
     ) {}
 }
