@@ -199,15 +199,24 @@ class ParallelPool extends WorkerPool
             $this->logger->debug('polling events');
 
             foreach (Helpers::bytes($data) as $byte) {
-                $id = \ord($byte);
-                $this->logger->debug("processing event from worker {$id}");
+                try {
+                    $id = \ord($byte);
+                    $this->logger->debug("processing event from worker {$id}");
 
-                $response = $this->outputs[$id]->recv();
+                    $response = $this->outputs[$id]->recv();
+                    $resolver = $this->resolvers[$id];
 
-                $resolver = $this->resolvers[$id];
-                $this->resolvers[$id] = null;
+                    // Deferred::resolve() is synchronous and it may initiate
+                    // a recursive call to this method processing a same id.
+                    // Therefore, mutation of the array slot must be finished
+                    // before calling the resolve method.
+                    $this->resolvers[$id] = null;
 
-                $resolver->resolve($response);
+                    $resolver->resolve($response);
+                } catch (\Throwable $e) {
+                    $message = $e->getMessage();
+                    $this->logger->error("error processing event from worker {$id}: {$message}");
+                }
             }
 
             $this->logger->debug('events idle');
