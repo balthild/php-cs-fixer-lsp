@@ -9,6 +9,7 @@ includes = ["vendor"]
 print-width = 120
 null-type-hint = "question"
 inline-empty-classlike-braces = true
+inline-single-breaking-value-argument = true
 array-table-style-alignment = false
 space-before-arrow-function-parameter-list-parenthesis = true
 preserve-breaking-member-access-chain = true
