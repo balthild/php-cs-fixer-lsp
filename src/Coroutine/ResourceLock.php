@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Balthild\PhpCsFixerLsp;
+namespace Balthild\PhpCsFixerLsp\Coroutine;
 
 use Amp\Sync\Lock;
 

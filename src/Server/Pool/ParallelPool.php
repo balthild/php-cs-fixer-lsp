@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
 use Amp\DeferredFuture;
+use Amp\Socket\SocketAddressType;
 use Amp\Socket\UdpSocket;
+use Balthild\PhpCsFixerLsp\Coroutine\UdgSocket;
 use Balthild\PhpCsFixerLsp\Logging\PsrLogEntry;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
@@ -20,9 +22,12 @@ use Psr\Log\LoggerInterface;
 
 use function Balthild\PhpCsFixerLsp\let;
 
+/**
+ * @mago-expect lint:too-many-methods
+ */
 class ParallelPool extends WorkerPool
 {
-    protected UdpSocket $waker;
+    protected UdpSocket|UdgSocket $waker;
 
     /** @var list<Runtime> */
     protected array $runtimes = [];
@@ -85,7 +90,7 @@ class ParallelPool extends WorkerPool
         $this->status = WorkerPoolStatus::Transitioning;
 
         $this->logger->debug('starting waker socket server');
-        $this->waker = \Amp\Socket\bindUdpSocket('127.0.0.1:0');
+        $this->waker = $this->bindWakerSocket();
 
         \Amp\async(function (): void {
             while (let($packet, $this->waker->receive())) {
@@ -141,15 +146,12 @@ class ParallelPool extends WorkerPool
         $this->outputs[$id] = $output;
         $this->resolvers[$id] = null;
 
-        $waker = $this->waker->getAddress()->toString();
-        $waker = "udp://{$waker}";
-
         $this->tasks[$id] = $runtime->run(
             static function ($id, $input, $output, $waker) {
                 $loop = new ParallelMainLoop($id, $input, $output, $waker);
                 $loop->run();
             },
-            [$id, $input, $output, $waker],
+            [$id, $input, $output, $this->getWakerAddress()],
         );
 
         $this->logger->debug("started worker thread {$id}");
@@ -195,6 +197,33 @@ class ParallelPool extends WorkerPool
         $this->resolvers[$id] = null;
 
         $resolver->complete($event);
+    }
+
+    protected function bindWakerSocket(): UdpSocket|UdgSocket
+    {
+        if (\PHP_OS_FAMILY === 'Windows') {
+            return \Amp\Socket\bindUdpSocket('127.0.0.1:0');
+        }
+
+        $path = \tempnam(\sys_get_temp_dir(), 'waker-');
+        if (!$path) {
+            throw new \RuntimeException('Failed to get a unique path');
+        }
+
+        \unlink($path);
+
+        return UdgSocket::bind($path);
+    }
+
+    protected function getWakerAddress(): string
+    {
+        $address = $this->waker->getAddress();
+        $protocol = match ($address->getType()) {
+            SocketAddressType::Unix => 'udg',
+            SocketAddressType::Internet => 'udp',
+        };
+
+        return "{$protocol}://{$address->toString()}";
     }
 
     protected function getAutoloader(): string

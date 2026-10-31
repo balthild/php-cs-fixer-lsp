@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
-use Balthild\PhpCsFixerLsp\BiasedSemaphore;
+use Balthild\PhpCsFixerLsp\Coroutine\BiasedSemaphore;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
