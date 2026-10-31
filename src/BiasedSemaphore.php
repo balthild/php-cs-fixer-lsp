@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp;
 
-use Amp\Deferred;
-use Amp\Promise;
-use Amp\Success;
+use Amp\DeferredFuture;
 use Amp\Sync\Lock;
-use Amp\Sync\Semaphore;
 
 /**
  * Copied and modified from \Amp\Sync\LocalSemaphore.
@@ -19,12 +16,12 @@ use Amp\Sync\Semaphore;
  *
  * @see \Amp\Sync\LocalSemaphore
  */
-class BiasedSemaphore implements Semaphore
+class BiasedSemaphore
 {
     /** @var int[] */
     private array $locks;
 
-    /** @var Deferred[] */
+    /** @var DeferredFuture<int>[] */
     private array $queue = [];
 
     public function __construct(int $maxLocks)
@@ -36,30 +33,32 @@ class BiasedSemaphore implements Semaphore
         $this->locks = \range(0, $maxLocks - 1);
     }
 
-    /** {@inheritdoc} */
-    public function acquire(): Promise
+    public function acquire(): SemaphoreLock
     {
         if ($this->locks) {
-            $id = \array_pop($this->locks);
-            return new Success(new Lock($id, $this->release(...)));
+            return $this->lock(\array_pop($this->locks));
         }
 
-        $deferred = new Deferred();
+        $deferred = new DeferredFuture();
         $this->queue[] = $deferred;
 
-        return $deferred->promise();
+        return $this->lock($deferred->getFuture()->await());
     }
 
-    private function release(Lock $lock): void
+    private function release(int $id): void
     {
-        $id = $lock->getId();
-
         if ($this->queue) {
             $deferred = \array_shift($this->queue);
-            $deferred->resolve(new Lock($id, $this->release(...)));
+            $deferred->complete($id);
             return;
         }
 
         $this->locks[] = $id;
+    }
+
+    private function lock(int $id): SemaphoreLock
+    {
+        $inner = new Lock(fn () => $this->release($id));
+        return new SemaphoreLock($id, $inner);
     }
 }

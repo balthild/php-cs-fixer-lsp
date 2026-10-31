@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Server;
 
-use Amp\File;
-use Amp\Promise;
-use Amp\Success;
 use Balthild\PhpCsFixerLsp\Model\IPC\FormatRequest;
 use Balthild\PhpCsFixerLsp\Server\Pool\WorkerPool;
 use Phpactor\LanguageServer\Core\Formatting\Formatter as FormatterInterface;
@@ -23,20 +20,21 @@ class Formatter implements FormatterInterface
     ) {}
 
     /**
-     * @return Promise<TextEdit[]|null>
+     * @return TextEdit[]|null
      */
-    public function format(TextDocumentItem $textDocument): Promise
+    public function format(TextDocumentItem $textDocument): ?array
     {
         // non-file URIs are always formatted
         if (\str_starts_with($textDocument->uri, 'file://')) {
             if (!$this->finder->contains($textDocument->uri)) {
                 $this->logger->info("skipping excluded file {$textDocument->uri}");
-                return new Success(null);
+                return null;
             }
         }
 
         $this->logger->info("formatting {$textDocument->uri}");
 
+        // TODO: make this an implementation detail of the worker?
         if (\filter_var(\ini_get('allow_url_fopen'), \FILTER_VALIDATE_BOOLEAN)) {
             // by default, data URIs are accepted by `file_get_contents`.
             return $this->formatWithDataUri($textDocument);
@@ -48,33 +46,37 @@ class Formatter implements FormatterInterface
         }
     }
 
-    protected function formatWithDataUri(TextDocumentItem $textDocument): Promise
+    /**
+     * @return TextEdit[]|null
+     */
+    protected function formatWithDataUri(TextDocumentItem $textDocument): ?array
     {
-        return \Amp\call(function () use ($textDocument) {
-            $this->logger->debug('calling worker with code');
-            $request = new FormatRequest(text: $textDocument->text);
-            $response = yield $this->workers->call($request);
+        $this->logger->debug('calling worker with code');
+        $request = new FormatRequest(text: $textDocument->text);
+        $response = $this->workers->call($request);
 
-            return $response->edits;
-        });
+        return $response->edits;
     }
 
-    protected function formatWithTempFile(TextDocumentItem $textDocument): Promise
+    /**
+     * @return TextEdit[]|null
+     */
+    protected function formatWithTempFile(TextDocumentItem $textDocument): ?array
     {
         $temp = \tempnam(\sys_get_temp_dir(), 'php-cs-fixer-lsp-');
 
-        return \Amp\call(function () use ($textDocument, $temp) {
+        try {
             $this->logger->debug("writing code to temporary file {$temp}");
-            yield File\write($temp, $textDocument->text);
+            \file_put_contents($temp, $textDocument->text);
 
             $this->logger->debug("calling worker with path {$temp}");
             $request = new FormatRequest(path: $temp);
-            $response = yield $this->workers->call($request);
-
-            $this->logger->debug("deleting temporary file {$temp}");
-            yield File\deleteFile($temp);
+            $response = $this->workers->call($request);
 
             return $response->edits;
-        });
+        } finally {
+            $this->logger->debug("deleting temporary file {$temp}");
+            \unlink($temp);
+        }
     }
 }

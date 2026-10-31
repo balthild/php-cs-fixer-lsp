@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
-use Amp\Promise;
-use Amp\Sync\Semaphore;
 use Balthild\PhpCsFixerLsp\BiasedSemaphore;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
@@ -23,7 +21,7 @@ abstract class WorkerPool implements ListenerProviderInterface
 
     protected WorkerPoolStatus $status;
 
-    protected Semaphore $semaphore;
+    protected BiasedSemaphore $semaphore;
 
     protected function __construct(LoggerInterface $logger, ServerOptions $options)
     {
@@ -36,24 +34,20 @@ abstract class WorkerPool implements ListenerProviderInterface
     /**
      * @template T of Response
      * @param Request<T> $request
-     * @return Promise<T>
+     * @return T
      */
-    abstract public function call(Request $request): Promise;
+    abstract public function call(Request $request): Response;
 
-    abstract protected function initialize(): Promise;
+    abstract protected function initialize(): void;
 
-    abstract protected function shutdown(): Promise;
+    abstract protected function shutdown(): void;
 
     #[\Override]
     public function getListenersForEvent(object $event): iterable
     {
         return match (true) {
-            $event instanceof Initialized => [
-                fn () => Promise\rethrow($this->initialize()),
-            ],
-            $event instanceof WillShutdown => [
-                fn () => Promise\rethrow($this->shutdown()),
-            ],
+            $event instanceof Initialized => [$this->initialize(...)],
+            $event instanceof WillShutdown => [$this->shutdown(...)],
             default => [],
         };
     }

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Server;
 
-use Amp\Promise;
-use Amp\Success;
 use Balthild\PhpCsFixerLsp\Logging\SimpleLogger;
 use Phpactor\LanguageServer\Core\Handler\Handler;
 use Phpactor\LanguageServerProtocol\DidChangeConfigurationParams;
@@ -23,10 +21,7 @@ class ConfigurationHandler implements Handler
         return ['workspace/didChangeConfiguration' => 'didChangeConfiguration'];
     }
 
-    /**
-     * @return Promise<null>
-     */
-    public function didChangeConfiguration(DidChangeConfigurationParams $params): Promise
+    public function didChangeConfiguration(DidChangeConfigurationParams $params): void
     {
         $settings = $params->settings['php-cs-fixer-lsp'];
 
@@ -41,7 +36,5 @@ class ConfigurationHandler implements Handler
         }
 
         $this->logger->info('settings updated');
-
-        return new Success();
     }
 }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Balthild\PhpCsFixerLsp\Server;
 
 use Amp\CancelledException;
-use Amp\Promise;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Phpactor\LanguageServer\Core\Middleware\Middleware;
 use Phpactor\LanguageServer\Core\Middleware\RequestHandler;
@@ -23,22 +22,17 @@ class ExceptionMiddleware implements Middleware
         private LoggerInterface $logger,
     ) {}
 
-    /**
-     * @return Promise<?ResponseMessage>
-     */
-    public function process(Message $request, RequestHandler $handler): Promise
+    public function process(Message $request, RequestHandler $handler): ?ResponseMessage
     {
-        return \Amp\call(function () use ($request, $handler) {
-            try {
-                return yield $handler->handle($request);
-            } catch (ServerControl|CancelledException $exception) {
-                throw $exception;
-            } catch (WorkerException $exception) {
-                return $this->reportError($request, $exception->info);
-            } catch (\Throwable $exception) {
-                return $this->reportError($request, new ExceptionInfo($exception));
-            }
-        });
+        try {
+            return $handler->handle($request);
+        } catch (ServerControl|CancelledException $exception) {
+            throw $exception;
+        } catch (WorkerException $exception) {
+            return $this->reportError($request, $exception->info);
+        } catch (\Throwable $exception) {
+            return $this->reportError($request, new ExceptionInfo($exception));
+        }
     }
 
     protected function reportError(Message $request, ExceptionInfo $info): ?ResponseMessage
@@ -58,7 +52,7 @@ class ExceptionMiddleware implements Middleware
             $request->id,
             null,
             new ResponseError(
-                ErrorCodes::InternalError,
+                ErrorCodes::INTERNAL_ERROR,
                 $info->description(),
             ),
         );

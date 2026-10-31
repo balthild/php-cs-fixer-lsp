@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Server;
 
-use Amp\Promise;
-use Amp\Success;
 use Phpactor\LanguageServer\Core\Handler\Handler;
 use Psr\Log\LoggerInterface;
 
@@ -20,12 +18,8 @@ class TraceHandler implements Handler
         return ['$/setTrace' => 'setTrace'];
     }
 
-    /**
-     * @return Promise<null>
-     */
-    public function setTrace(string $value): Promise
+    public function setTrace(string $value): void
     {
         $this->logger->info("server trace level set to {$value}");
-        return new Success();
     }
 }

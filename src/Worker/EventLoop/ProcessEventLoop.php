@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Worker\EventLoop;
 
-use Amp\Loop;
-use Amp\Parallel\Sync\ChannelledSocket;
+use Amp\ByteStream\ReadableResourceStream;
+use Amp\ByteStream\StreamChannel;
+use Amp\ByteStream\WritableResourceStream;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
+use Balthild\PhpCsFixerLsp\Model\IPC\Request;
+use Balthild\PhpCsFixerLsp\Model\IPC\Response;
 use Balthild\PhpCsFixerLsp\Worker\Worker;
 use Psr\Log\LoggerInterface;
 
@@ -23,24 +26,22 @@ class ProcessEventLoop
 
     public function run(): void
     {
-        Loop::run(function () {
-            $channel = new ChannelledSocket(
-                \fopen('php://stdin', 'r'),
-                \fopen('php://stdout', 'w'),
-            );
+        /** @var StreamChannel<Request|null, Response|ExceptionInfo> */
+        $channel = new StreamChannel(
+            new ReadableResourceStream(\STDIN),
+            new WritableResourceStream(\STDOUT),
+        );
 
-            while (let($request, yield $channel->receive())) {
-                $response = $this->worker->dispatch($request);
+        while (let($request, $channel->receive())) {
+            $response = $this->worker->dispatch($request);
 
-                if ($response instanceof \Throwable) {
-                    $response = new ExceptionInfo($response);
-                }
-
-                yield $channel->send($response);
+            if ($response instanceof \Throwable) {
+                $response = new ExceptionInfo($response);
             }
 
-            $channel->close();
-            Loop::stop();
-        });
+            $channel->send($response);
+        }
+
+        $channel->close();
     }
 }

@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
-use Amp\Deferred;
-use Amp\Promise;
+use Amp\DeferredFuture;
+use Amp\Socket\ResourceServerSocket;
 use Amp\Socket\ResourceSocket;
-use Amp\Socket\Server;
-use Amp\Sync\Lock;
 use Balthild\PhpCsFixerLsp\Helpers;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
+use Balthild\PhpCsFixerLsp\Model\IPC\Response;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
 use Balthild\PhpCsFixerLsp\Server\WorkerException;
 use Balthild\PhpCsFixerLsp\Worker\EventLoop\ParallelEventLoop;
@@ -27,7 +26,7 @@ use function Balthild\PhpCsFixerLsp\let;
  */
 class ParallelPool extends WorkerPool
 {
-    protected Server $waker;
+    protected ResourceServerSocket $waker;
     protected Channel $notifier;
     protected Runtime $bridge;
     protected Future $messenger;
@@ -44,7 +43,7 @@ class ParallelPool extends WorkerPool
     /** @var Future[] */
     protected array $tasks = [];
 
-    /** @var Deferred[] */
+    /** @var (DeferredFuture|null)[] */
     protected array $resolvers = [];
 
     public function __construct(LoggerInterface $logger, ServerOptions $options)
@@ -53,109 +52,103 @@ class ParallelPool extends WorkerPool
     }
 
     #[\Override]
-    public function call(Request $request): Promise
+    public function call(Request $request): Response
     {
-        return \Amp\call(function () use ($request) {
-            if ($this->status !== WorkerPoolStatus::Initialized) {
-                throw new \LogicException('Worker pool is not initialized.');
-            }
+        if ($this->status !== WorkerPoolStatus::Initialized) {
+            throw new \LogicException('Worker pool is not initialized.');
+        }
 
-            /** @var Lock */
-            $lock = yield $this->semaphore->acquire();
+        $lock = $this->semaphore->acquire();
 
-            $this->logger->debug("requesting worker {$lock->getId()}");
+        $this->logger->debug("requesting worker {$lock->id}");
 
-            $deferred = new Deferred();
-            $this->resolvers[$lock->getId()] = $deferred;
+        $deferred = new DeferredFuture();
+        $this->resolvers[$lock->id] = $deferred;
 
-            $this->inputs[$lock->getId()]->send($request);
-            $response = yield $deferred->promise();
+        $this->inputs[$lock->id]->send($request);
+        $response = $deferred->getFuture()->await();
 
-            $this->logger->debug("get response from worker {$lock->getId()}");
+        $this->logger->debug("get response from worker {$lock->id}");
 
-            $lock->release();
+        $lock->release();
 
-            if ($response instanceof ExceptionInfo) {
-                throw new WorkerException($response);
-            }
+        if ($response instanceof ExceptionInfo) {
+            throw new WorkerException($response);
+        }
 
-            return $response;
-        });
+        return $response;
     }
 
     #[\Override]
-    protected function initialize(): Promise
+    protected function initialize(): void
     {
-        return \Amp\call(function () {
-            if ($this->status !== WorkerPoolStatus::Uninitialized) {
-                $this->logger->warning('worker pool is already initialized or initializing');
-                return;
+        if ($this->status !== WorkerPoolStatus::Uninitialized) {
+            $this->logger->warning('worker pool is already initialized or initializing');
+            return;
+        }
+
+        $this->logger->info("initializing worker pool with {$this->workers} workers");
+        $this->status = WorkerPoolStatus::Transitioning;
+
+        $this->logger->debug('starting waker socket server');
+        $this->waker = \Amp\Socket\listen('127.0.0.1:0');
+
+        \Amp\async(function (): void {
+            while (let($socket, $this->waker->accept())) {
+                \Amp\async($this->poll(...), $socket);
             }
+        });
 
-            $this->logger->info("initializing worker pool with {$this->workers} workers");
-            $this->status = WorkerPoolStatus::Transitioning;
-
-            $this->logger->debug('starting waker socket server');
-            $this->waker = Server::listen('tcp://127.0.0.1:0');
-            \Amp\asyncCall(function () {
-                while (let($socket, yield $this->waker->accept())) {
-                    \Amp\asyncCall($this->poll(...), $socket);
+        $this->logger->debug('starting waker bridge thread');
+        $this->notifier = new Channel(capacity: Channel::Infinite);
+        $this->bridge = new Runtime($this->getAutoloader());
+        $this->messenger = $this->bridge->run(
+            static function (Channel $notifier, string $waker) {
+                $client = \stream_socket_client($waker);
+                while (let($id, $notifier->recv())) {
+                    \fwrite($client, \chr($id));
                 }
-            });
+                \fclose($client);
+            },
+            [$this->notifier, $this->waker->getAddress()->toString()],
+        );
 
-            $this->logger->debug('starting waker bridge thread');
-            $this->notifier = new Channel(capacity: Channel::Infinite);
-            $this->bridge = new Runtime($this->getAutoloader());
-            $this->messenger = $this->bridge->run(
-                static function (Channel $notifier, string $waker) {
-                    $client = \stream_socket_client($waker);
-                    while (let($id, $notifier->recv())) {
-                        \fwrite($client, \chr($id));
-                    }
-                    \fclose($client);
-                },
-                [$this->notifier, $this->waker->getAddress()->toString()],
-            );
+        for ($i = 0; $i < $this->workers; $i++) {
+            $this->start($i);
+        }
 
-            for ($i = 0; $i < $this->workers; $i++) {
-                $this->start($i);
-            }
-
-            $this->logger->info('worker pool initialized');
-            $this->status = WorkerPoolStatus::Initialized;
-        });
+        $this->logger->info('worker pool initialized');
+        $this->status = WorkerPoolStatus::Initialized;
     }
 
     #[\Override]
-    protected function shutdown(): Promise
+    protected function shutdown(): void
     {
-        return \Amp\call(function () {
-            if ($this->status !== WorkerPoolStatus::Initialized) {
-                $this->logger->warning('worker pool is not initialized');
-                return;
-            }
+        if ($this->status !== WorkerPoolStatus::Initialized) {
+            $this->logger->warning('worker pool is not initialized');
+            return;
+        }
 
-            $this->logger->info('shutting down worker pool');
-            $this->status = WorkerPoolStatus::Transitioning;
+        $this->logger->info('shutting down worker pool');
+        $this->status = WorkerPoolStatus::Transitioning;
 
-            $locks = yield Promise\all(\array_map(
-                fn () => $this->semaphore->acquire(),
-                \range(0, $this->workers - 1),
-            ));
+        $locks = \array_map(
+            $this->semaphore->acquire(...),
+            \range(0, $this->workers - 1),
+        );
 
-            foreach ($locks as $lock) {
-                $this->stop($lock->getId());
-                $lock->release();
-            }
+        foreach ($locks as $lock) {
+            $this->stop($lock->id);
+            $lock->release();
+        }
 
-            $this->waker->close();
-            $this->notifier->send(null);
-            $this->notifier->close();
-            $this->bridge->close();
+        $this->waker->close();
+        $this->notifier->send(null);
+        $this->notifier->close();
+        $this->bridge->close();
 
-            $this->logger->info('worker pool shut down');
-            $this->status = WorkerPoolStatus::Deinitialized;
-        });
+        $this->logger->info('worker pool shut down');
+        $this->status = WorkerPoolStatus::Deinitialized;
     }
 
     protected function start(int $id)
@@ -195,7 +188,7 @@ class ParallelPool extends WorkerPool
 
     protected function poll(ResourceSocket $socket)
     {
-        while (let($data, yield $socket->read())) {
+        while (let($data, $socket->read())) {
             $this->logger->debug('polling events');
 
             foreach (Helpers::bytes($data) as $byte) {
@@ -205,14 +198,9 @@ class ParallelPool extends WorkerPool
 
                     $response = $this->outputs[$id]->recv();
                     $resolver = $this->resolvers[$id];
-
-                    // Deferred::resolve() is synchronous and it may initiate
-                    // a recursive call to this method processing a same id.
-                    // Therefore, mutation of the array slot must be finished
-                    // before calling the resolve method.
                     $this->resolvers[$id] = null;
 
-                    $resolver->resolve($response);
+                    $resolver->complete($response);
                 } catch (\Throwable $e) {
                     $message = $e->getMessage();
                     $this->logger->error("error processing event from worker {$id}: {$message}");
