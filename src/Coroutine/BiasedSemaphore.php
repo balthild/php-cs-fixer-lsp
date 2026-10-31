@@ -28,11 +28,6 @@ class BiasedSemaphore
     public function acquire(): ResourceLock
     {
         $lock = $this->inner->acquire();
-        return $this->allocate($lock);
-    }
-
-    private function allocate(Lock $lock): ResourceLock
-    {
         $id = \array_pop($this->pool);
 
         return new ResourceLock($id, new Lock(function () use ($id, $lock) {
