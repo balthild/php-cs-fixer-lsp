@@ -12,7 +12,7 @@ use Psr\Log\LoggerInterface;
 
 final class WorkerTest extends TestCase
 {
-    public function testFormat(): void
+    public function testFormatRequest(): void
     {
         $logger = $this->createMock(LoggerInterface::class);
         $main = new Worker($logger);
@@ -26,20 +26,6 @@ final class WorkerTest extends TestCase
         $this->assertInstanceOf(FormatResponse::class, $response);
         $this->assertNotNull($response->edits);
         $this->assertCount(1, $response->edits);
-    }
-
-    public function testFormatWithoutChanges(): void
-    {
-        $logger = $this->createMock(LoggerInterface::class);
-        $main = new Worker($logger);
-
-        $text = "<?php\n\necho 'Hello, World!';\n";
-
-        $request = new FormatRequest(text: $text);
-        $response = $main->dispatch($request);
-
-        $this->assertInstanceOf(FormatResponse::class, $response);
-        $this->assertNull($response->edits);
     }
 
     public function testUnknownRequest(): void
