@@ -77,24 +77,7 @@ class ProcessPool extends WorkerPool
         $this->logger->debug("worker command: {$command}");
 
         for ($i = 0; $i < $this->workers; $i++) {
-            $process = Process::start("{$command} --id={$i}");
-            $this->processes[$i] = $process;
-            $this->channels[$i] = new StreamChannel(
-                $process->getStdout(),
-                $process->getStdin(),
-            );
-
-            \Amp\async(function () use ($process) {
-                $logging = new StreamChannel($process->getStderr(), new WritableBuffer());
-                while (attempt($entry, $logging->receive(...))) {
-                    $this->logger->log(
-                        $entry->level,
-                        $entry->message,
-                        $entry->context,
-                    );
-                }
-                $logging->close();
-            });
+            $this->start($command, $i);
         }
 
         $this->logger->info('worker pool initialized');
@@ -118,18 +101,48 @@ class ProcessPool extends WorkerPool
         );
 
         foreach ($locks as $lock) {
-            $this->logger->debug("stopping worker {$lock->id}");
-
-            $this->channels[$lock->id]->send(null);
-            $this->processes[$lock->id]->join();
-
-            $this->logger->debug("stopped worker {$lock->id}");
-
+            $this->stop($lock->id);
             $lock->release();
         }
 
         $this->logger->info('worker pool shut down');
         $this->status = WorkerPoolStatus::Deinitialized;
+    }
+
+    protected function start(string $command, int $id): void
+    {
+        $this->logger->debug("starting worker process {$id}");
+
+        $process = Process::start("{$command} --id={$id}");
+        $this->processes[$id] = $process;
+        $this->channels[$id] = new StreamChannel(
+            $process->getStdout(),
+            $process->getStdin(),
+        );
+
+        \Amp\async(function () use ($process) {
+            $logging = new StreamChannel($process->getStderr(), new WritableBuffer());
+            while (attempt($entry, $logging->receive(...))) {
+                $this->logger->log(
+                    $entry->level,
+                    $entry->message,
+                    $entry->context,
+                );
+            }
+            $logging->close();
+        });
+
+        $this->logger->debug("started worker process {$id}");
+    }
+
+    protected function stop(int $id): void
+    {
+        $this->logger->debug("stopping worker process {$id}");
+
+        $this->channels[$id]->send(null);
+        $this->processes[$id]->join();
+
+        $this->logger->debug("stopped worker process {$id}");
     }
 
     protected function getPhpCommand(): string

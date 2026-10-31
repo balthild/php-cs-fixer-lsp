@@ -29,7 +29,7 @@ class ProcessMainLoop
 
     public function run(int $id): void
     {
-        $this->logger->info("worker {$id} started");
+        $this->logger->info("worker {$id} running");
 
         /** @var StreamChannel<?Request, Response|ExceptionInfo> */
         $channel = new StreamChannel(

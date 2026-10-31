@@ -15,13 +15,13 @@ class AmphpChannelLogger extends AbstractLogger
     protected Channel $channel;
 
     /**
-     * @param resource $stream
+     * @param resource $output
      */
-    public function __construct($stream)
+    public function __construct($output)
     {
         $this->channel = new StreamChannel(
             new ReadableBuffer(null),
-            new WritableResourceStream($stream),
+            new WritableResourceStream($output),
         );
     }
 

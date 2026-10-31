@@ -8,6 +8,7 @@ use Amp\DeferredFuture;
 use Amp\Socket\ResourceServerSocket;
 use Amp\Socket\Socket;
 use Balthild\PhpCsFixerLsp\Helpers;
+use Balthild\PhpCsFixerLsp\Logging\PsrLogEntry;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
@@ -158,11 +159,11 @@ class ParallelPool extends WorkerPool
 
     protected function start(int $id): void
     {
-        $this->logger->debug("starting worker {$id}");
+        $this->logger->debug("starting worker thread {$id}");
 
         $runtime = new Runtime($this->getAutoloader());
         $input = Channel::make(name: "{$id}-input", capacity: Channel::Infinite);
-        $output = Channel::make(name: "{$id}-output", capacity: Channel::Infinite);
+        $output = Channel::make(name: "{$id}-output", capacity: 1);
 
         $this->runtimes[$id] = $runtime;
         $this->inputs[$id] = $input;
@@ -177,43 +178,53 @@ class ParallelPool extends WorkerPool
             [$id, $input, $output, $this->notifier],
         );
 
-        $this->logger->debug("started worker {$id}");
+        $this->logger->debug("started worker thread {$id}");
     }
 
     protected function stop(int $id): void
     {
-        $this->logger->debug("stopping worker {$id}");
+        $this->logger->debug("stopping worker thread {$id}");
 
         $this->inputs[$id]->send(null);
         $this->inputs[$id]->close();
         $this->runtimes[$id]->close();
 
-        $this->logger->debug("stopped worker {$id}");
+        $this->logger->debug("stopped worker thread {$id}");
     }
 
     protected function poll(Socket $socket): void
     {
         while (let($data, $socket->read())) {
-            $this->logger->debug('polling events');
-
             foreach (Helpers::bytes($data) as $byte) {
                 try {
                     $id = \ord($byte);
-                    $this->logger->debug("processing event from worker {$id}");
-
-                    $response = $this->outputs[$id]->recv();
-                    $resolver = $this->resolvers[$id];
-                    $this->resolvers[$id] = null;
-
-                    $resolver->complete($response);
+                    $event = $this->outputs[$id]->recv();
+                    $this->dispatch($id, $event);
                 } catch (\Throwable $e) {
                     $message = $e->getMessage();
                     $this->logger->error("error processing event from worker {$id}: {$message}");
                 }
             }
-
-            $this->logger->debug('events idle');
         }
+    }
+
+    protected function dispatch(int $id, mixed $event): void
+    {
+        if ($event instanceof PsrLogEntry) {
+            $this->logger->log(
+                $event->level,
+                $event->message,
+                $event->context,
+            );
+            return;
+        }
+
+        $this->logger->debug("processing response from worker {$id}");
+
+        $resolver = $this->resolvers[$id];
+        $this->resolvers[$id] = null;
+
+        $resolver->complete($event);
     }
 
     protected function getAutoloader(): string

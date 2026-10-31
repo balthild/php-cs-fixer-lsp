@@ -8,11 +8,13 @@ use Balthild\PhpCsFixerLsp\Logging\ParallelChannelLogger;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Worker\Worker;
 use parallel\Channel;
+use Psr\Log\LoggerInterface;
 
 use function Balthild\PhpCsFixerLsp\let;
 
 class ParallelMainLoop
 {
+    protected LoggerInterface $logger;
     protected Worker $worker;
 
     protected int $id;
@@ -22,8 +24,8 @@ class ParallelMainLoop
 
     public function __construct(int $id, Channel $input, Channel $output, Channel $notifier)
     {
-        $logger = new ParallelChannelLogger($output);
-        $this->worker = new Worker($logger);
+        $this->logger = new ParallelChannelLogger($id, $output, $notifier);
+        $this->worker = new Worker($this->logger);
 
         $this->id = $id;
         $this->input = $input;
@@ -33,6 +35,8 @@ class ParallelMainLoop
 
     public function run(): void
     {
+        $this->logger->info("worker {$this->id} running");
+
         while (let($request, $this->input->recv())) {
             $response = $this->worker->dispatch($request);
 
