@@ -6,15 +6,15 @@ namespace Balthild\PhpCsFixerLsp;
 
 use Amp\Sync\Lock;
 
-final class SemaphoreLock
+final class ResourceLock
 {
     public function __construct(
         public readonly int $id,
-        private readonly Lock $lock,
+        private readonly Lock $inner,
     ) {}
 
     public function release(): void
     {
-        $this->lock->release();
+        $this->inner->release();
     }
 }
