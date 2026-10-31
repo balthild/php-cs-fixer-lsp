@@ -45,21 +45,50 @@ class Worker
 
     public function format(FormatRequest $request): FormatResponse
     {
-        $file = match (true) {
-            $request->text !== null => new DataUriFileInfo($request->text),
-            $request->path !== null => new \SplFileInfo($request->path),
-            default => throw new \RuntimeException('Either path or text must be provided'),
-        };
-
-        $this->runner->setFileIterator(new \ArrayIterator([$file]));
-
-        $results = $this->runner->fix();
-        $info = \array_pop($results);
-        if ($info === null) {
-            return new FormatResponse(null);
+        if (\filter_var(\ini_get('allow_url_fopen'), \FILTER_VALIDATE_BOOLEAN)) {
+            // by default, data URIs are accepted by `file_get_contents`.
+            $diff = $this->formatWithDataUri($request->text);
+        } else {
+            // due to the limitations of PHP-CS-Fixer's implementation, we have
+            // to provide it a path to the code.
+            $diff = $this->formatWithTempFile($request->text);
         }
 
-        return new FormatResponse(DiffUtils::diffToTextEdits($info['diff']));
+        return new FormatResponse(DiffUtils::diffToTextEdits($diff));
+    }
+
+    protected function formatWithDataUri(string $text): string
+    {
+        $this->logger->debug('formatting code');
+        return $this->callFixer(new DataUriFileInfo($text));
+    }
+
+    protected function formatWithTempFile(string $text): string
+    {
+        $temp = \tempnam(\sys_get_temp_dir(), 'php-cs-fixer-lsp-');
+        if (!$temp) {
+            throw new \RuntimeException('Failed to create temporary file');
+        }
+
+        try {
+            $this->logger->debug("writing code to temporary file {$temp}");
+            \file_put_contents($temp, $text);
+
+            $this->logger->debug("formatting temporary file {$temp}");
+            return $this->callFixer(new \SplFileInfo($temp));
+        } finally {
+            $this->logger->debug("deleting temporary file {$temp}");
+            \unlink($temp);
+        }
+    }
+
+    protected function callFixer(\SplFileInfo $file): string
+    {
+        $this->runner->setFileIterator(new \ArrayIterator([$file]));
+        foreach ($this->runner->fix() as $result) {
+            return $result['diff'];
+        }
+        throw new \RuntimeException('Unexpected result from PHP-CS-Fixer');
     }
 
     /**

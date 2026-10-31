@@ -10,7 +10,6 @@ namespace Balthild\PhpCsFixerLsp\Model\IPC;
 final class FormatRequest implements Request
 {
     public function __construct(
-        public readonly ?string $path = null,
         public readonly ?string $text = null,
     ) {}
 }
