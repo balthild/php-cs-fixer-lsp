@@ -25,13 +25,20 @@
               xdebug.mode = debug
             '';
           };
+
+          # Box takes `php82` instead of the scope's `php`, so it silently resolves to the
+          # plain pkgs.php82 and escapes the override above. Fixed upstream in PR #575757.
+          # Delete this override when bumping nixpkgs past it.
+          box = pkgs.php82Packages.box.override {
+            php82 = config.packages.php82;
+          };
         };
 
         devShells.default = pkgs.mkShell {
           buildInputs = [
             config.packages.php82-dev
             config.packages.php82.packages.composer
-            config.packages.php82.packages.box
+            config.packages.box
             pkgs.mago
           ];
         };
