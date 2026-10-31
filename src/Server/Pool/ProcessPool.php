@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
 use Amp\ByteStream\StreamChannel;
+use Amp\ByteStream\WritableBuffer;
 use Amp\Process\Process;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
@@ -13,6 +14,8 @@ use Balthild\PhpCsFixerLsp\Model\ServerOptions;
 use Balthild\PhpCsFixerLsp\Server\WorkerException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\PhpExecutableFinder;
+
+use function Balthild\PhpCsFixerLsp\attempt;
 
 class ProcessPool extends WorkerPool
 {
@@ -74,12 +77,24 @@ class ProcessPool extends WorkerPool
         $this->logger->debug("worker command: {$command}");
 
         for ($i = 0; $i < $this->workers; $i++) {
-            $process = Process::start($command);
+            $process = Process::start("{$command} --id={$i}");
             $this->processes[$i] = $process;
             $this->channels[$i] = new StreamChannel(
                 $process->getStdout(),
                 $process->getStdin(),
             );
+
+            \Amp\async(function () use ($process) {
+                $logging = new StreamChannel($process->getStderr(), new WritableBuffer());
+                while (attempt($entry, $logging->receive(...))) {
+                    $this->logger->log(
+                        $entry->level,
+                        $entry->message,
+                        $entry->context,
+                    );
+                }
+                $logging->close();
+            });
         }
 
         $this->logger->info('worker pool initialized');

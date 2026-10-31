@@ -7,6 +7,7 @@ namespace Balthild\PhpCsFixerLsp\Worker\EventLoop;
 use Amp\ByteStream\ReadableResourceStream;
 use Amp\ByteStream\StreamChannel;
 use Amp\ByteStream\WritableResourceStream;
+use Balthild\PhpCsFixerLsp\Logging\AmphpChannelLogger;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
@@ -15,17 +16,21 @@ use Psr\Log\LoggerInterface;
 
 use function Balthild\PhpCsFixerLsp\let;
 
-class ProcessEventLoop
+class ProcessMainLoop
 {
+    protected LoggerInterface $logger;
     protected Worker $worker;
 
-    public function __construct(LoggerInterface $logger)
+    public function __construct()
     {
-        $this->worker = new Worker($logger);
+        $this->logger = new AmphpChannelLogger(\STDERR);
+        $this->worker = new Worker($this->logger);
     }
 
-    public function run(): void
+    public function run(int $id): void
     {
+        $this->logger->info("worker {$id} started");
+
         /** @var StreamChannel<?Request, Response|ExceptionInfo> */
         $channel = new StreamChannel(
             new ReadableResourceStream(\STDIN),

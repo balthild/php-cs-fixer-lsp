@@ -13,7 +13,7 @@ use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
 use Balthild\PhpCsFixerLsp\Model\ServerOptions;
 use Balthild\PhpCsFixerLsp\Server\WorkerException;
-use Balthild\PhpCsFixerLsp\Worker\EventLoop\ParallelEventLoop;
+use Balthild\PhpCsFixerLsp\Worker\EventLoop\ParallelMainLoop;
 use parallel\Channel;
 use parallel\Future;
 use parallel\Runtime;
@@ -171,7 +171,7 @@ class ParallelPool extends WorkerPool
 
         $this->tasks[$id] = $runtime->run(
             static function ($id, $input, $output, $notifier) {
-                $loop = new ParallelEventLoop($id, $input, $output, $notifier);
+                $loop = new ParallelMainLoop($id, $input, $output, $notifier);
                 $loop->run();
             },
             [$id, $input, $output, $this->notifier],

@@ -7,7 +7,7 @@ namespace Balthild\PhpCsFixerLsp\Logging;
 use parallel\Channel;
 use Psr\Log\AbstractLogger;
 
-class ChannelLogger extends AbstractLogger
+class ParallelChannelLogger extends AbstractLogger
 {
     public function __construct(protected Channel $channel) {}
 

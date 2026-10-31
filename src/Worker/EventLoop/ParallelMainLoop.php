@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Worker\EventLoop;
 
-use Balthild\PhpCsFixerLsp\Logging\ChannelLogger;
+use Balthild\PhpCsFixerLsp\Logging\ParallelChannelLogger;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Worker\Worker;
 use parallel\Channel;
 
 use function Balthild\PhpCsFixerLsp\let;
 
-class ParallelEventLoop
+class ParallelMainLoop
 {
     protected Worker $worker;
 
@@ -22,7 +22,7 @@ class ParallelEventLoop
 
     public function __construct(int $id, Channel $input, Channel $output, Channel $notifier)
     {
-        $logger = new ChannelLogger($output);
+        $logger = new ParallelChannelLogger($output);
         $this->worker = new Worker($logger);
 
         $this->id = $id;
