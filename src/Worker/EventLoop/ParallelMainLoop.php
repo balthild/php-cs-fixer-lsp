@@ -20,17 +20,24 @@ class ParallelMainLoop
     protected int $id;
     protected Channel $input;
     protected Channel $output;
-    protected Channel $notifier;
 
-    public function __construct(int $id, Channel $input, Channel $output, Channel $notifier)
+    /** @var resource $waker */
+    protected $waker;
+
+    public function __construct(int $id, Channel $input, Channel $output, string $waker)
     {
-        $this->logger = new ParallelChannelLogger($id, $output, $notifier);
+        $client = \stream_socket_client($waker);
+        if ($client === false) {
+            throw new \RuntimeException("Failed to connect to waker at {$waker}");
+        }
+
+        $this->logger = new ParallelChannelLogger($id, $output, $client);
         $this->worker = new Worker($this->logger);
 
         $this->id = $id;
         $this->input = $input;
         $this->output = $output;
-        $this->notifier = $notifier;
+        $this->waker = $client;
     }
 
     public function run(): void
@@ -45,9 +52,10 @@ class ParallelMainLoop
             }
 
             $this->output->send($response);
-            $this->notifier->send($this->id);
+            \fwrite($this->waker, \chr($this->id));
         }
 
         $this->output->close();
+        \fclose($this->waker);
     }
 }

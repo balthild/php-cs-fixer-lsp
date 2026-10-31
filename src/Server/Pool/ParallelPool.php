@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
 use Amp\DeferredFuture;
-use Amp\Socket\ResourceServerSocket;
-use Amp\Socket\Socket;
-use Balthild\PhpCsFixerLsp\Helpers;
+use Amp\Socket\UdpSocket;
 use Balthild\PhpCsFixerLsp\Logging\PsrLogEntry;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
@@ -22,15 +20,9 @@ use Psr\Log\LoggerInterface;
 
 use function Balthild\PhpCsFixerLsp\let;
 
-/**
- * @mago-expect lint:kan-defect
- */
 class ParallelPool extends WorkerPool
 {
-    protected ResourceServerSocket $waker;
-    protected Channel $notifier;
-    protected Runtime $bridge;
-    protected Future $messenger;
+    protected UdpSocket $waker;
 
     /** @var list<Runtime> */
     protected array $runtimes = [];
@@ -93,31 +85,13 @@ class ParallelPool extends WorkerPool
         $this->status = WorkerPoolStatus::Transitioning;
 
         $this->logger->debug('starting waker socket server');
-        $this->waker = \Amp\Socket\listen('127.0.0.1:0');
+        $this->waker = \Amp\Socket\bindUdpSocket('127.0.0.1:0');
 
         \Amp\async(function (): void {
-            while (let($socket, $this->waker->accept())) {
-                \Amp\async($this->poll(...), $socket);
+            while (let($packet, $this->waker->receive())) {
+                \Amp\async($this->poll(...), $packet[1]);
             }
         });
-
-        $this->logger->debug('starting waker bridge thread');
-        $this->notifier = new Channel(capacity: Channel::Infinite);
-        $this->bridge = new Runtime($this->getAutoloader());
-        $this->messenger = $this->bridge->run(
-            static function (Channel $notifier, string $waker) {
-                $client = \stream_socket_client($waker);
-                if ($client === false) {
-                    throw new \RuntimeException("Failed to connect to waker at {$waker}");
-                }
-
-                while (let($id, $notifier->recv())) {
-                    \fwrite($client, \chr($id));
-                }
-                \fclose($client);
-            },
-            [$this->notifier, $this->waker->getAddress()->toString()],
-        );
 
         for ($i = 0; $i < $this->workers; $i++) {
             $this->start($i);
@@ -149,9 +123,6 @@ class ParallelPool extends WorkerPool
         }
 
         $this->waker->close();
-        $this->notifier->send(null);
-        $this->notifier->close();
-        $this->bridge->close();
 
         $this->logger->info('worker pool shut down');
         $this->status = WorkerPoolStatus::Deinitialized;
@@ -170,12 +141,15 @@ class ParallelPool extends WorkerPool
         $this->outputs[$id] = $output;
         $this->resolvers[$id] = null;
 
+        $waker = $this->waker->getAddress()->toString();
+        $waker = "udp://{$waker}";
+
         $this->tasks[$id] = $runtime->run(
-            static function ($id, $input, $output, $notifier) {
-                $loop = new ParallelMainLoop($id, $input, $output, $notifier);
+            static function ($id, $input, $output, $waker) {
+                $loop = new ParallelMainLoop($id, $input, $output, $waker);
                 $loop->run();
             },
-            [$id, $input, $output, $this->notifier],
+            [$id, $input, $output, $waker],
         );
 
         $this->logger->debug("started worker thread {$id}");
@@ -192,19 +166,15 @@ class ParallelPool extends WorkerPool
         $this->logger->debug("stopped worker thread {$id}");
     }
 
-    protected function poll(Socket $socket): void
+    protected function poll(string $data): void
     {
-        while (let($data, $socket->read())) {
-            foreach (Helpers::bytes($data) as $byte) {
-                try {
-                    $id = \ord($byte);
-                    $event = $this->outputs[$id]->recv();
-                    $this->dispatch($id, $event);
-                } catch (\Throwable $e) {
-                    $message = $e->getMessage();
-                    $this->logger->error("error processing event from worker {$id}: {$message}");
-                }
-            }
+        try {
+            $id = \ord($data);
+            $event = $this->outputs[$id]->recv();
+            $this->dispatch($id, $event);
+        } catch (\Throwable $e) {
+            $message = $e->getMessage();
+            $this->logger->error("error processing event from worker {$id}: {$message}");
         }
     }
 

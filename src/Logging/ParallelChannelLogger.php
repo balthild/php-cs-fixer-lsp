@@ -12,13 +12,14 @@ class ParallelChannelLogger extends AbstractLogger
     public function __construct(
         protected int $id,
         protected Channel $output,
-        protected Channel $notifier,
+        /** @var resource $waker */
+        protected $waker,
     ) {}
 
     #[\Override]
     public function log($level, $message, array $context = []): void
     {
         $this->output->send(new PsrLogEntry($level, $message, $context));
-        $this->notifier->send($this->id);
+        \fwrite($this->waker, \chr($this->id));
     }
 }
