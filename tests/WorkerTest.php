@@ -12,26 +12,7 @@ use Psr\Log\LoggerInterface;
 
 final class WorkerTest extends TestCase
 {
-    public function testFormatWithTempFile(): void
-    {
-        $logger = $this->createMock(LoggerInterface::class);
-        $main = new Worker($logger);
-
-        $text = "<?php\necho 'Hello, World!';\n";
-
-        $temp = \tempnam(\sys_get_temp_dir(), 'worker-test-');
-        \file_put_contents($temp, $text);
-
-        $request = new FormatRequest(path: $temp);
-        $response = $main->dispatch($request);
-
-        \unlink($temp);
-
-        $this->assertInstanceOf(FormatResponse::class, $response);
-        $this->assertCount(1, $response->edits);
-    }
-
-    public function testFormatWithDataUri(): void
+    public function testFormat(): void
     {
         $logger = $this->createMock(LoggerInterface::class);
         $main = new Worker($logger);
@@ -43,7 +24,22 @@ final class WorkerTest extends TestCase
 
         // added 1 empty line before the echo statement
         $this->assertInstanceOf(FormatResponse::class, $response);
+        $this->assertNotNull($response->edits);
         $this->assertCount(1, $response->edits);
+    }
+
+    public function testFormatWithoutChanges(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $main = new Worker($logger);
+
+        $text = "<?php\n\necho 'Hello, World!';\n";
+
+        $request = new FormatRequest(text: $text);
+        $response = $main->dispatch($request);
+
+        $this->assertInstanceOf(FormatResponse::class, $response);
+        $this->assertNull($response->edits);
     }
 
     public function testUnknownRequest(): void

@@ -21,11 +21,14 @@ class Worker
 {
     protected LoggerInterface $logger;
 
+    protected CapturingDiffer $differ;
+
     protected Runner $runner;
 
     public function __construct(LoggerInterface $logger)
     {
         $this->logger = $logger;
+        $this->differ = new CapturingDiffer();
         $this->runner = $this->createRunner();
     }
 
@@ -45,25 +48,34 @@ class Worker
 
     public function format(FormatRequest $request): FormatResponse
     {
+        $this->differ->reset();
+
         if (\filter_var(\ini_get('allow_url_fopen'), \FILTER_VALIDATE_BOOLEAN)) {
             // by default, data URIs are accepted by `file_get_contents`.
-            $diff = $this->formatWithDataUri($request->text);
+            $this->formatWithDataUri($request->text);
         } else {
             // due to the limitations of PHP-CS-Fixer's implementation, we have
             // to provide it a path to the code.
-            $diff = $this->formatWithTempFile($request->text);
+            $this->formatWithTempFile($request->text);
         }
 
-        return new FormatResponse(DiffUtils::diffToTextEdits($diff));
+        $old = $this->differ->getOriginal();
+        $new = $this->differ->getFormatted();
+
+        if ($old === null || $new === null) {
+            return new FormatResponse(null);
+        }
+
+        return new FormatResponse(TextEditBuilder::fromTexts($old, $new));
     }
 
-    protected function formatWithDataUri(string $text): string
+    protected function formatWithDataUri(string $text): void
     {
         $this->logger->debug('formatting code');
-        return $this->callFixer(new DataUriFileInfo($text));
+        $this->callFixer(new DataUriFileInfo($text));
     }
 
-    protected function formatWithTempFile(string $text): string
+    protected function formatWithTempFile(string $text): void
     {
         $temp = \tempnam(\sys_get_temp_dir(), 'php-cs-fixer-lsp-');
         if (!$temp) {
@@ -75,20 +87,17 @@ class Worker
             \file_put_contents($temp, $text);
 
             $this->logger->debug("formatting temporary file {$temp}");
-            return $this->callFixer(new \SplFileInfo($temp));
+            $this->callFixer(new \SplFileInfo($temp));
         } finally {
             $this->logger->debug("deleting temporary file {$temp}");
             \unlink($temp);
         }
     }
 
-    protected function callFixer(\SplFileInfo $file): string
+    protected function callFixer(\SplFileInfo $file): void
     {
         $this->runner->setFileIterator(new \ArrayIterator([$file]));
-        foreach ($this->runner->fix() as $result) {
-            return $result['diff'];
-        }
-        throw new \RuntimeException('Unexpected result from PHP-CS-Fixer');
+        $this->runner->fix();
     }
 
     /**
@@ -107,7 +116,7 @@ class Worker
         return new Runner(
             fileIterator: null,
             fixers: $resolver->getFixers(),
-            differ: $resolver->getDiffer(),
+            differ: $this->differ,
             eventDispatcher: null,
             errorsManager: new ErrorsManager(),
             linter: $resolver->getLinter(),
