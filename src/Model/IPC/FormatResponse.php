@@ -9,7 +9,7 @@ use Phpactor\LanguageServerProtocol\TextEdit;
 final class FormatResponse implements Response
 {
     public function __construct(
-        /** @var TextEdit[]|null */
+        /** @var ?list<TextEdit> */
         public readonly ?array $edits,
     ) {}
 }

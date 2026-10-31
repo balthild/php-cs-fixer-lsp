@@ -19,7 +19,7 @@ use SebastianBergmann\Diff\Parser;
 class DiffUtils
 {
     /**
-     * @return TextEdit[]
+     * @return list<TextEdit>
      */
     public static function diffToTextEdits(string $diffText): array
     {
@@ -66,7 +66,7 @@ class DiffUtils
     }
 
     /**
-     * @param  Line[]|null $lines
+     * @param ?list<Line> $lines
      */
     protected static function linesToString(?array $lines): string
     {

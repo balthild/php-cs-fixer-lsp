@@ -19,6 +19,7 @@ class FinderCache implements ListenerProviderInterface
         '.php-cs-fixer.dist.php' => true,
     ];
 
+    /** @var array<string, bool> */
     protected array $cache = [];
 
     public function __construct()
@@ -32,7 +33,7 @@ class FinderCache implements ListenerProviderInterface
             return true;
         }
 
-        $path = Helpers::uriToPath($uri);
+        $path = Helpers::uriToPath($uri) ?? '';
 
         return \array_key_exists($path, $this->cache);
     }
@@ -41,7 +42,7 @@ class FinderCache implements ListenerProviderInterface
     {
         try {
             foreach (Helpers::getPhpCsFixerFinder()->getIterator() as $file) {
-                $this->cache[$file->getRealPath()] = true;
+                $this->cache[$file->getRealPath() ?: ''] = true;
             }
         } catch (\LogicException) {
             // defaults to match everything
@@ -51,9 +52,9 @@ class FinderCache implements ListenerProviderInterface
 
     public function getListenersForEvent(object $event): iterable
     {
-        match (true) {
-            $event instanceof FilesChanged => yield $this->changed(...),
-            default => null,
+        return match (true) {
+            $event instanceof FilesChanged => [$this->changed(...)],
+            default => [],
         };
     }
 

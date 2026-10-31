@@ -26,7 +26,7 @@ class ProcessEventLoop
 
     public function run(): void
     {
-        /** @var StreamChannel<Request|null, Response|ExceptionInfo> */
+        /** @var StreamChannel<?Request, Response|ExceptionInfo> */
         $channel = new StreamChannel(
             new ReadableResourceStream(\STDIN),
             new WritableResourceStream(\STDOUT),

@@ -23,7 +23,10 @@ class SimpleLogger extends AbstractLogger
         $this->output->setVerbosity($this->verbosity($level));
     }
 
-    private function verbosity(string $level)
+    /**
+     * @return OutputInterface::VERBOSITY_*
+     */
+    private function verbosity(string $level): int
     {
         return match ($level) {
             LogLevel::EMERGENCY => OutputInterface::VERBOSITY_QUIET,

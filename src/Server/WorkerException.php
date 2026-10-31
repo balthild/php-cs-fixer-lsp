@@ -10,6 +10,6 @@ class WorkerException extends \Exception
 {
     public function __construct(public readonly ExceptionInfo $info)
     {
-        parent::__construct($info->message, $info->code);
+        parent::__construct($info->message, (int) $info->code);
     }
 }

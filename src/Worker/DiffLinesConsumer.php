@@ -44,7 +44,7 @@ class DiffLinesConsumer
     }
 
     /**
-     * @return Line[]|null
+     * @return ?list<Line>
      */
     public function eatWhileType(int $type): ?array
     {
@@ -66,7 +66,7 @@ class DiffLinesConsumer
     }
 
     /**
-     * @return Line[]|null
+     * @return ?list<Line>
      */
     public function eatUnchanged(): ?array
     {
@@ -74,7 +74,7 @@ class DiffLinesConsumer
     }
 
     /**
-     * @return Line[]|null
+     * @return ?list<Line>
      */
     public function eatRemoved(): ?array
     {
@@ -82,7 +82,7 @@ class DiffLinesConsumer
     }
 
     /**
-     * @return Line[]|null
+     * @return ?list<Line>
      */
     public function eatAdded(): ?array
     {

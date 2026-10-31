@@ -18,7 +18,7 @@ use Amp\Sync\Lock;
  */
 class BiasedSemaphore
 {
-    /** @var int[] */
+    /** @var list<int> */
     private array $locks;
 
     /** @var DeferredFuture<int>[] */

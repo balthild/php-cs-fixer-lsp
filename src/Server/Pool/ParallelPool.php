@@ -6,7 +6,7 @@ namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
 use Amp\DeferredFuture;
 use Amp\Socket\ResourceServerSocket;
-use Amp\Socket\ResourceSocket;
+use Amp\Socket\Socket;
 use Balthild\PhpCsFixerLsp\Helpers;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
@@ -31,19 +31,19 @@ class ParallelPool extends WorkerPool
     protected Runtime $bridge;
     protected Future $messenger;
 
-    /** @var Runtime[] */
+    /** @var list<Runtime> */
     protected array $runtimes = [];
 
-    /** @var Channel[] */
+    /** @var list<Channel> */
     protected array $inputs = [];
 
-    /** @var Channel[] */
+    /** @var list<Channel> */
     protected array $outputs = [];
 
-    /** @var Future[] */
+    /** @var list<Future> */
     protected array $tasks = [];
 
-    /** @var (DeferredFuture|null)[] */
+    /** @var list<?DeferredFuture<Response|ExceptionInfo>> */
     protected array $resolvers = [];
 
     public function __construct(LoggerInterface $logger, ServerOptions $options)
@@ -62,6 +62,7 @@ class ParallelPool extends WorkerPool
 
         $this->logger->debug("requesting worker {$lock->id}");
 
+        /** @var DeferredFuture<Response|ExceptionInfo> $deferred */
         $deferred = new DeferredFuture();
         $this->resolvers[$lock->id] = $deferred;
 
@@ -105,6 +106,10 @@ class ParallelPool extends WorkerPool
         $this->messenger = $this->bridge->run(
             static function (Channel $notifier, string $waker) {
                 $client = \stream_socket_client($waker);
+                if ($client === false) {
+                    throw new \RuntimeException("Failed to connect to waker at {$waker}");
+                }
+
                 while (let($id, $notifier->recv())) {
                     \fwrite($client, \chr($id));
                 }
@@ -151,7 +156,7 @@ class ParallelPool extends WorkerPool
         $this->status = WorkerPoolStatus::Deinitialized;
     }
 
-    protected function start(int $id)
+    protected function start(int $id): void
     {
         $this->logger->debug("starting worker {$id}");
 
@@ -175,7 +180,7 @@ class ParallelPool extends WorkerPool
         $this->logger->debug("started worker {$id}");
     }
 
-    protected function stop(int $id)
+    protected function stop(int $id): void
     {
         $this->logger->debug("stopping worker {$id}");
 
@@ -186,7 +191,7 @@ class ParallelPool extends WorkerPool
         $this->logger->debug("stopped worker {$id}");
     }
 
-    protected function poll(ResourceSocket $socket)
+    protected function poll(Socket $socket): void
     {
         while (let($data, $socket->read())) {
             $this->logger->debug('polling events');
@@ -219,7 +224,7 @@ class ParallelPool extends WorkerPool
         }
 
         $path = \realpath(__DIR__ . '/../../../vendor/autoload.php');
-        if (\is_file($path)) {
+        if ($path && \is_file($path)) {
             return $path;
         }
 

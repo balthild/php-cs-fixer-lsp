@@ -172,7 +172,7 @@ final class DataUriFileInfo extends \SplFileInfo
     }
 
     #[\Override]
-    public function openFile($openMode = 'r', $useIncludePath = false, $context = null): \SplFileObject
+    public function openFile($mode = 'r', $useIncludePath = false, $context = null): \SplFileObject
     {
         throw new \BadMethodCallException(\sprintf('Method "%s" is not implemented.', __METHOD__));
     }

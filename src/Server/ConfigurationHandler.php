@@ -23,16 +23,22 @@ class ConfigurationHandler implements Handler
 
     public function didChangeConfiguration(DidChangeConfigurationParams $params): void
     {
-        $settings = $params->settings['php-cs-fixer-lsp'];
+        if (!\is_array($params->settings)) {
+            return;
+        }
+
+        $settings = $params->settings['php-cs-fixer-lsp'] ?? [];
 
         if ($this->logger instanceof SimpleLogger) {
-            $this->logger->setLevel(match ($settings['logLevel'] ?? 'info') {
-                'debug' => LogLevel::DEBUG,
-                'info' => LogLevel::INFO,
-                'warning' => LogLevel::WARNING,
-                'error' => LogLevel::ERROR,
-                default => LogLevel::INFO,
-            });
+            $this->logger->setLevel(
+                match ($settings['logLevel'] ?? 'info') {
+                    'debug' => LogLevel::DEBUG,
+                    'info' => LogLevel::INFO,
+                    'warning' => LogLevel::WARNING,
+                    'error' => LogLevel::ERROR,
+                    default => LogLevel::INFO,
+                },
+            );
         }
 
         $this->logger->info('settings updated');

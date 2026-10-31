@@ -8,7 +8,7 @@ final class ExceptionInfo
 {
     public readonly string $class;
     public readonly string $message;
-    public readonly int $code;
+    public readonly int|string $code;
     public readonly string $file;
     public readonly int $line;
     public readonly string $trace;

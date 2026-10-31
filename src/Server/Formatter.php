@@ -20,7 +20,7 @@ class Formatter implements FormatterInterface
     ) {}
 
     /**
-     * @return TextEdit[]|null
+     * @return ?list<TextEdit>
      */
     public function format(TextDocumentItem $textDocument): ?array
     {
@@ -47,7 +47,7 @@ class Formatter implements FormatterInterface
     }
 
     /**
-     * @return TextEdit[]|null
+     * @return ?list<TextEdit>
      */
     protected function formatWithDataUri(TextDocumentItem $textDocument): ?array
     {
@@ -59,11 +59,14 @@ class Formatter implements FormatterInterface
     }
 
     /**
-     * @return TextEdit[]|null
+     * @return ?list<TextEdit>
      */
     protected function formatWithTempFile(TextDocumentItem $textDocument): ?array
     {
         $temp = \tempnam(\sys_get_temp_dir(), 'php-cs-fixer-lsp-');
+        if (!$temp) {
+            throw new \RuntimeException('Failed to create temporary file');
+        }
 
         try {
             $this->logger->debug("writing code to temporary file {$temp}");

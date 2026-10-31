@@ -20,11 +20,15 @@ final class Helpers
         }
     }
 
-    public static function uriToPath(string $uri): string
+    public static function uriToPath(string $uri): ?string
     {
-        return \urldecode(\parse_url($uri, \PHP_URL_PATH));
+        $path = \parse_url($uri, \PHP_URL_PATH);
+        return $path === null ? null : \urldecode($path ?: '');
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public static function getPhpCsFixerResolver(array $options = []): ConfigurationResolver
     {
         $default = [

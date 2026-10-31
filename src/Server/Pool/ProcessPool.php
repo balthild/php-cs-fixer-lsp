@@ -18,10 +18,10 @@ class ProcessPool extends WorkerPool
 {
     protected readonly bool $opcache;
 
-    /** @var Process[] */
+    /** @var list<Process> */
     protected array $processes = [];
 
-    /** @var StreamChannel<Response|ExceptionInfo, Request|null>[] */
+    /** @var StreamChannel<Response|ExceptionInfo, ?Request>[] */
     protected array $channels = [];
 
     public function __construct(LoggerInterface $logger, ServerOptions $options)
@@ -120,6 +120,9 @@ class ProcessPool extends WorkerPool
     protected function getPhpCommand(): string
     {
         $command = (new PhpExecutableFinder())->find(false);
+        if (!$command) {
+            throw new \RuntimeException('Unable to find PHP executable.');
+        }
 
         if ($this->opcache) {
             $command .= ' -d opcache.enable=1';
@@ -142,7 +145,7 @@ class ProcessPool extends WorkerPool
         }
 
         $path = \realpath(__DIR__ . '/../../../bin/php-cs-fixer-lsp');
-        if (\is_file($path)) {
+        if ($path && \is_file($path)) {
             return $path;
         }
 
