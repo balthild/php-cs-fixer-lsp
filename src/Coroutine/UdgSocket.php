@@ -21,7 +21,7 @@ use Revolt\EventLoop\Suspension;
  *
  * @see \Amp\Socket\ResourceUdpSocket
  */
-final class UdgSocket implements Closable
+class UdgSocket implements Closable
 {
     use ForbidCloning;
     use ForbidSerialization;

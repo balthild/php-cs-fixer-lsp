@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Balthild\PhpCsFixerLsp\Server\Pool;
 
 use Amp\DeferredFuture;
-use Amp\Socket\SocketAddressType;
-use Amp\Socket\UdpSocket;
-use Balthild\PhpCsFixerLsp\Coroutine\UdgSocket;
+use Balthild\PhpCsFixerLsp\Coroutine\WakerServer;
 use Balthild\PhpCsFixerLsp\Logging\PsrLogEntry;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
@@ -20,14 +18,12 @@ use parallel\Future;
 use parallel\Runtime;
 use Psr\Log\LoggerInterface;
 
-use function Balthild\PhpCsFixerLsp\let;
-
 /**
  * @mago-expect lint:too-many-methods
  */
 class ParallelPool extends WorkerPool
 {
-    protected UdpSocket|UdgSocket $waker;
+    protected WakerServer $waker;
 
     /** @var list<Runtime> */
     protected array $runtimes = [];
@@ -90,13 +86,8 @@ class ParallelPool extends WorkerPool
         $this->status = WorkerPoolStatus::Transitioning;
 
         $this->logger->debug('starting waker socket server');
-        $this->waker = $this->bindWakerSocket();
-
-        \Amp\async(function (): void {
-            while (let($packet, $this->waker->receive())) {
-                \Amp\async($this->poll(...), $packet[1]);
-            }
-        });
+        $this->waker = new WakerServer($this->poll(...));
+        $this->logger->debug('waker listening at ' . $this->waker->getAddress());
 
         for ($i = 0; $i < $this->workers; $i++) {
             $this->start($i);
@@ -139,7 +130,7 @@ class ParallelPool extends WorkerPool
 
         $runtime = new Runtime($this->getAutoloader());
         $input = Channel::make(name: "{$id}-input", capacity: Channel::Infinite);
-        $output = Channel::make(name: "{$id}-output", capacity: 1);
+        $output = Channel::make(name: "{$id}-output", capacity: Channel::Infinite);
 
         $this->runtimes[$id] = $runtime;
         $this->inputs[$id] = $input;
@@ -151,7 +142,7 @@ class ParallelPool extends WorkerPool
                 $loop = new ParallelMainLoop($id, $input, $output, $waker);
                 $loop->run();
             },
-            [$id, $input, $output, $this->getWakerAddress()],
+            [$id, $input, $output, $this->waker->getAddress()],
         );
 
         $this->logger->debug("started worker thread {$id}");
@@ -168,10 +159,9 @@ class ParallelPool extends WorkerPool
         $this->logger->debug("stopped worker thread {$id}");
     }
 
-    protected function poll(string $data): void
+    protected function poll(int $id): void
     {
         try {
-            $id = \ord($data);
             $event = $this->outputs[$id]->recv();
             $this->dispatch($id, $event);
         } catch (\Throwable $e) {
@@ -197,33 +187,6 @@ class ParallelPool extends WorkerPool
         $this->resolvers[$id] = null;
 
         $resolver->complete($event);
-    }
-
-    protected function bindWakerSocket(): UdpSocket|UdgSocket
-    {
-        if (\PHP_OS_FAMILY === 'Windows') {
-            return \Amp\Socket\bindUdpSocket('127.0.0.1:0');
-        }
-
-        $path = \tempnam(\sys_get_temp_dir(), 'waker-');
-        if (!$path) {
-            throw new \RuntimeException('Failed to get a unique path');
-        }
-
-        \unlink($path);
-
-        return UdgSocket::bind($path);
-    }
-
-    protected function getWakerAddress(): string
-    {
-        $address = $this->waker->getAddress();
-        $protocol = match ($address->getType()) {
-            SocketAddressType::Unix => 'udg',
-            SocketAddressType::Internet => 'udp',
-        };
-
-        return "{$protocol}://{$address->toString()}";
     }
 
     protected function getAutoloader(): string

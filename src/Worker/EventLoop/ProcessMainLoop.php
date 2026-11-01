@@ -47,6 +47,8 @@ class ProcessMainLoop
             $channel->send($response);
         }
 
+        $this->logger->info("worker {$id} exiting");
+
         $channel->close();
     }
 }

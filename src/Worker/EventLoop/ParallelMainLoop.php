@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Balthild\PhpCsFixerLsp\Worker\EventLoop;
 
+use Balthild\PhpCsFixerLsp\Coroutine\WakerClient;
 use Balthild\PhpCsFixerLsp\Logging\ParallelChannelLogger;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Worker\Worker;
@@ -20,16 +21,11 @@ class ParallelMainLoop
     protected int $id;
     protected Channel $input;
     protected Channel $output;
-
-    /** @var resource $waker */
-    protected $waker;
+    protected WakerClient $waker;
 
     public function __construct(int $id, Channel $input, Channel $output, string $waker)
     {
-        $client = \stream_socket_client($waker);
-        if ($client === false) {
-            throw new \RuntimeException("Failed to connect to waker at {$waker}");
-        }
+        $client = new WakerClient($waker);
 
         $this->logger = new ParallelChannelLogger($id, $output, $client);
         $this->worker = new Worker($this->logger);
@@ -52,10 +48,22 @@ class ParallelMainLoop
             }
 
             $this->output->send($response);
-            \fwrite($this->waker, \chr($this->id));
+            $this->waker->send($this->id);
         }
 
+        // FIXME
+        // Critical memory unsoundness in ext-parallel.
+        // See https://github.com/krakjoe/parallel/issues/416
+        //
+        // Mitigation: after receiving the exiting signal (null), the worker
+        // must not send any value into channels but only close them.
+        //
+        // The logger below sends a message into output channel under the hood,
+        // which is a triggering behavior.
+
+        // $this->logger->info("worker {$this->id} exiting");
+
         $this->output->close();
-        \fclose($this->waker);
+        $this->waker->close();
     }
 }

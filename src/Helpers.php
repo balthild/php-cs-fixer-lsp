@@ -12,6 +12,9 @@ use Symfony\Component\Finder\Finder;
 
 final class Helpers
 {
+    /**
+     * @return iterable<string>
+     */
     public static function bytes(string $data): iterable
     {
         $length = \strlen($data);
