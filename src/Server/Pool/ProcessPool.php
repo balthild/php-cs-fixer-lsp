@@ -7,6 +7,7 @@ namespace Balthild\PhpCsFixerLsp\Server\Pool;
 use Amp\ByteStream\StreamChannel;
 use Amp\ByteStream\WritableBuffer;
 use Amp\Process\Process;
+use Amp\Sync\Channel;
 use Balthild\PhpCsFixerLsp\Model\ExceptionInfo;
 use Balthild\PhpCsFixerLsp\Model\IPC\Request;
 use Balthild\PhpCsFixerLsp\Model\IPC\Response;
@@ -24,7 +25,7 @@ class ProcessPool extends WorkerPool
     /** @var list<Process> */
     protected array $processes = [];
 
-    /** @var StreamChannel<Response|ExceptionInfo, ?Request>[] */
+    /** @var Channel<Response|ExceptionInfo, ?Request>[] */
     protected array $channels = [];
 
     public function __construct(LoggerInterface $logger, ServerOptions $options)
@@ -71,10 +72,8 @@ class ProcessPool extends WorkerPool
         $this->logger->info("initializing worker pool with {$this->workers} workers");
         $this->status = WorkerPoolStatus::Transitioning;
 
-        $php = $this->getPhpCommand();
-        $main = \escapeshellarg($this->getMainScript());
-        $command = "{$php} {$main} worker";
-        $this->logger->debug("worker command: {$command}");
+        $command = $this->getWorkerCommand();
+        $this->logger->debug('worker command: ' . \implode(' ', $command));
 
         for ($i = 0; $i < $this->workers; $i++) {
             $this->start($command, $i);
@@ -109,11 +108,11 @@ class ProcessPool extends WorkerPool
         $this->status = WorkerPoolStatus::Deinitialized;
     }
 
-    protected function start(string $command, int $id): void
+    protected function start(array $command, int $id): void
     {
         $this->logger->debug("starting worker process {$id}");
 
-        $process = Process::start("{$command} --id={$id}");
+        $process = Process::start([...$command, "--id={$id}"]);
         $this->processes[$id] = $process;
         $this->channels[$id] = new StreamChannel(
             $process->getStdout(),
@@ -145,22 +144,27 @@ class ProcessPool extends WorkerPool
         $this->logger->debug("stopped worker process {$id}");
     }
 
-    protected function getPhpCommand(): string
+    protected function getWorkerCommand(): array
     {
-        $command = (new PhpExecutableFinder())->find(false);
-        if (!$command) {
-            throw new \RuntimeException('Unable to find PHP executable.');
+        $php = (new PhpExecutableFinder())->find(false);
+        if (!$php) {
+            throw new \RuntimeException('Failed to find PHP executable.');
         }
 
+        $command = [$php];
+
         if ($this->opcache) {
-            $command .= ' -d opcache.enable=1';
-            $command .= ' -d opcache.enable_cli=1';
-            $command .= ' -d opcache.validate_timestamps=1';
-            $command .= ' -d opcache.preload=';
+            $command[] = '-d opcache.enable=1';
+            $command[] = '-d opcache.enable_cli=1';
+            $command[] = '-d opcache.validate_timestamps=1';
+            $command[] = '-d opcache.preload=';
 
             // https://wiki.php.net/rfc/opcache.no_cache
             // $command .= ' -d opcache.enable_cache=0';
         }
+
+        $command[] = $this->getMainScript();
+        $command[] = 'worker';
 
         return $command;
     }
@@ -177,6 +181,6 @@ class ProcessPool extends WorkerPool
             return $path;
         }
 
-        throw new \RuntimeException('Cannot determine the main script path.');
+        throw new \RuntimeException('Failed to determine the main script path.');
     }
 }
