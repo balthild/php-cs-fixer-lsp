@@ -54,7 +54,7 @@ abstract class WorkerPool implements ListenerProviderInterface
 
     public static function create(LoggerInterface $logger, ServerOptions $options): self
     {
-        if (\PHP_ZTS && \extension_loaded('parallel')) {
+        if ($options->parallel) {
             $logger->info('workers will be run in threads');
             return new ParallelPool($logger, $options);
         } else {

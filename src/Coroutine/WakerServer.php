@@ -79,7 +79,7 @@ class WakerServer implements Closable
 
     protected function onDataReceived(string $data): void
     {
-        $result = unpack('Nvalue', $data);
+        $result = \unpack('Nvalue', $data);
         \Amp\async($this->wake, $result['value']);
     }
 

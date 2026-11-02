@@ -22,22 +22,25 @@ final class ServerOptions
     #[Option('Enable opcache for worker processes if available')]
     public bool $opcache = true;
 
+    #[Option('Run workers in threads with ext-parallel', name: 'experimental-parallel')]
+    public bool $parallel = false;
+
     public function resolve(): void
     {
         if ($this->stdio === ($this->socket !== null)) {
-            throw new \InvalidArgumentException('Either --stdio or --socket must be specified.');
+            $this->fail('Either --stdio or --socket must be specified.');
         }
 
         if ($this->socket !== null && ($this->socket < 1 || $this->socket > 65535)) {
-            throw new \InvalidArgumentException('The socket port must be between 1 and 65535.');
+            $this->fail('The socket port must be between 1 and 65535.');
         }
 
         if ($this->workers < 0) {
-            throw new \InvalidArgumentException('The number of workers must be non-negative.');
+            $this->fail('The number of workers must be non-negative.');
         }
 
         if ($this->workers >= 128) {
-            throw new \InvalidArgumentException('The number of workers must be less than 128.');
+            $this->fail('The number of workers must be less than 128.');
         }
 
         if ($this->workers === 0) {
@@ -49,5 +52,14 @@ final class ServerOptions
         if (!\function_exists('opcache_get_status')) {
             $this->opcache = false;
         }
+
+        if ($this->parallel && !(\PHP_ZTS && \extension_loaded('parallel'))) {
+            $this->fail('Multithreading requires ZTS and ext-parallel.');
+        }
+    }
+
+    private function fail(string $message): never
+    {
+        throw new \InvalidArgumentException($message);
     }
 }

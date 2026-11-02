@@ -18,9 +18,6 @@ use parallel\Future;
 use parallel\Runtime;
 use Psr\Log\LoggerInterface;
 
-/**
- * @mago-expect lint:too-many-methods
- */
 class ParallelPool extends WorkerPool
 {
     protected WakerServer $waker;
