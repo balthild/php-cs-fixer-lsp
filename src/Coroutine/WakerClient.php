@@ -6,6 +6,8 @@ namespace Balthild\PhpCsFixerLsp\Coroutine;
 
 class WakerClient
 {
+    use WakerEncoding;
+
     /** @var resource $stream */
     protected $stream;
 
@@ -19,7 +21,7 @@ class WakerClient
 
     public function send(int $value): void
     {
-        \fwrite($this->stream, \pack('N', $value));
+        \fwrite($this->stream, $this->encode($value));
     }
 
     public function close(): void

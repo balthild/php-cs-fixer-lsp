@@ -13,6 +13,8 @@ use function Balthild\PhpCsFixerLsp\let;
 
 class WakerServer implements Closable
 {
+    use WakerEncoding;
+
     public readonly string $proto;
     public readonly string $path;
 
@@ -55,7 +57,7 @@ class WakerServer implements Closable
                 \Amp\async(function () use ($connection) {
                     $reader = new BufferedReader($connection);
                     while (attempt($data, $reader->readLength(4))) {
-                        $this->onDataReceived($data);
+                        \Amp\async($this->wake, $this->decode($data));
                     }
                 });
             }
@@ -70,17 +72,11 @@ class WakerServer implements Closable
 
         \Amp\async(function () use ($socket) {
             while (let($packet, $socket->receive())) {
-                $this->onDataReceived($packet[1]);
+                \Amp\async($this->wake, $this->decode($packet[1]));
             }
         });
 
         return $socket;
-    }
-
-    protected function onDataReceived(string $data): void
-    {
-        $result = \unpack('Nvalue', $data);
-        \Amp\async($this->wake, $result['value']);
     }
 
     public function getAddress(): string
